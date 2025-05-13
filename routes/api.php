@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\StudentController;
 use App\Mail\VerificationCodeMail;
 use Illuminate\Http\Request;
@@ -16,4 +17,9 @@ Route::Post('/auth/google', [AuthController::class, 'googleSignIn']);
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/student/select-categories', [StudentController::class, 'attachMainCategories']);
     Route::post('/student/select-subcategories', [StudentController::class, 'attachSubCategories']);
+
+    Route::get('/categories/main', [CategoryController::class, 'getMainCategories']);
+
+
 });
+
