@@ -23,18 +23,48 @@ class AuthController
             'user_name' => 'required',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6|confirmed',
+            'role' => 'required|in:' . implode(',', [User::ROLE_STUDENT, User::ROLE_INSTRUCTOR]),
         ]);
 
         $code = rand(100000, 999999);
 
         Cache::put('register_' . $request->email, [
+            'data' => $request->only(['first_name', 'last_name', 'user_name', 'email', 'password', 'role']),
             'data' => $request->except('password_confirmation'),
             'code' => $code,
         ], now()->addMinutes(15));
 
+        // $cached = Cache::get('register_' . $request->email);
+
+
+        // $data = $cached['data'];
+        // $data['password'] = bcrypt($data['password']);
+        // $user = User::create($data);
+
+        // Cache::forget('register_' . $request->email);
+
+        // if ($user->isStudent()) {
+        //     $user->student()->create([
+        //         'full_name' => $user->first_name . ' ' . $user->last_name,
+        //     ]);
+        // } elseif ($user->isInstructor()) {
+        //     $user->instructor()->create([
+        //         'full_name' => $user->first_name . ' ' . $user->last_name,
+        //         'views'     => 0,
+        //     ]);
+        // }
+        // $user->load('student', 'instructor');
+
+        // $token = $user->createToken('mobile')->plainTextToken;
+
+        // return response()->json([
+        //     'message' => 'Registration completed.',
+        //     'user'    => $user,
+        //     'token'   => $token,
+        //     'profile' => $user->student ?? $user->instructor,
+        // ]);
 
         Mail::to($request->email)->send(new VerificationCodeMail($code));
-
 
         return response()->json(['message' => 'Verification code sent to your email.']);
 
@@ -59,10 +89,25 @@ class AuthController
 
         Cache::forget('register_' . $request->email);
 
+        if ($user->isStudent()) {
+            $user->student()->create([
+                'full_name' => $user->first_name . ' ' . $user->last_name,
+            ]);
+        } elseif ($user->isInstructor()) {
+            $user->instructor()->create([
+                'full_name' => $user->first_name . ' ' . $user->last_name,
+                'views'     => 0,
+            ]);
+        }
+        $user->load('student', 'instructor');
+
+        $token = $user->createToken('mobile')->plainTextToken;
+
         return response()->json([
             'message' => 'Registration completed.',
-            'user' => $user,
-            'token' => $user->createToken('mobile')->plainTextToken,
+            'user'    => $user,
+            'token'   => $token,
+            'profile' => $user->student ?? $user->instructor,
         ]);
     }
 
@@ -76,7 +121,11 @@ class AuthController
         $user = Auth::user();
         $token = $user->createToken('api-token')->plainTextToken;
 
-        return response()->json(['token' => $token, 'user' => $user], 200);
+        return response()->json([
+            'token'   => $token,
+            'user'    => $user,
+            'profile' => $user->student ?? $user->instructor,
+        ], 200);
     }
 
     // GOOGLE AUTH
@@ -120,7 +169,6 @@ class AuthController
             'token' => $user->createToken('mobile')->plainTextToken,
         ] , 200);
     }
-
 
 
     public function changePassword(Request $request)
@@ -206,6 +254,3 @@ class AuthController
     }
 
 }
-
-
-
