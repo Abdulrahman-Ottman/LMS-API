@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class AuthController
@@ -121,6 +122,88 @@ class AuthController
     }
 
 
+
+    public function changePassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required',
+            'new_password' => 'required|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $user = Auth::user();
+
+        if (!password_verify($request->current_password, $user->password)) {
+            return response()->json(['message' => 'Current password is incorrect'], 422);
+        }
+
+        $user->password = bcrypt($request->new_password);
+        $user->save();
+
+        return response()->json(['message' => 'Password changed successfully']);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json(['message' => 'Logged out successfully']);
+    }
+
+    public function sendResetCode(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $code = rand(100000, 999999);
+
+        Cache::put('reset_' . $request->email, [
+            'code' => $code,
+        ], now()->addMinutes(15));
+
+        Mail::to($request->email)->send(new \App\Mail\PasswordResetCodeMail($code));
+
+        return response()->json(['message' => 'Reset code sent to your email.']);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'code' => 'required|digits:6',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $cached = Cache::get('reset_' . $request->email);
+
+        if (!$cached || $cached['code'] != $request->code) {
+            return response()->json(['message' => 'Invalid or expired reset code'], 422);
+        }
+
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        $user->password = bcrypt($request->password);
+        $user->save();
+
+        Cache::forget('reset_' . $request->email);
+
+        return response()->json(['message' => 'Password reset successfully']);
+    }
 
 }
 
