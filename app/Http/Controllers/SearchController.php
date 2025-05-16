@@ -1,0 +1,97 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Course;
+use App\Models\Category;
+use App\Models\Instructor;
+use App\Traits\FilterCourses;
+use App\Traits\SortCourses;
+
+class SearchController extends Controller
+{
+    use filterCourses, sortCourses;
+    public function search(Request $request)
+    {
+        if (!$request->has('key') || !$request->get('key')) {
+            return response()->json([
+                'message' => 'Please enter a search key.'
+            ], 400);
+        }
+        $key = $request->get('key');
+
+        $coursesQuery = Course::with(['instructor:id,full_name', 'categories:id,name']);
+        $coursesQuery = $this->filterCourses($request, $coursesQuery);
+        $sortBy = $request->get('sort_by');
+        if ($sortBy) {
+            $this->sortCourses($sortBy, $coursesQuery);
+        }
+
+        $categoriesQuery = Category::query();
+        $categoriesQuery->where('name', 'like', '%'.$key.'%');
+
+        $instructorsQuery = Instructor::query();
+        $instructorsQuery->where('full_name', 'like', '%'.$key.'%');
+
+        switch ($request->get('sort_by')) {
+            case 'views_asc':
+                $instructorsQuery->orderBy('views', 'asc');
+                break;
+            case 'views_desc':
+                $instructorsQuery->orderBy('views', 'desc');
+                break;
+        }
+
+        $courses = $coursesQuery->get();
+        $categories = $categoriesQuery->get();
+        $instructors = $instructorsQuery->get();
+
+        if ($courses->isEmpty() && $categories->isEmpty() && $instructors->isEmpty()) {
+            return response()->json(['message' => 'No courses, categories, or instructors found.'], 404);
+        }
+
+        $type = $request->get('type');
+        if ($type === 'courses') {
+            return response()->json(['courses' => $courses], 200);
+        }
+        if ($type === 'categories') {
+            return response()->json(['categories' => $categories], 200);
+        }
+        if ($type === 'instructors') {
+            return response()->json(['instructors' => $instructors], 200);
+        }
+
+        return response()->json([
+            'courses' => $courses,
+            'categories' => $categories,
+            'instructors' => $instructors,
+        ], 200);
+    }
+
+    public function autoComplete(Request $request)
+    {
+        $key = $request->get('key', '');
+        if (!empty($key)) {
+            $courses = Course::where('title', 'LIKE', $key . '%')
+                ->limit(5)
+                ->pluck('title');
+            $instructors = Instructor::where('full_name', 'LIKE', $key . '%')
+                ->limit(5)
+                ->pluck('full_name');
+            $categories = Category::where('name', 'LIKE', $key . '%')
+                ->limit(5)
+                ->pluck('name');
+
+            return response()->json([
+                'courses' => $courses,
+                'instructors' => $instructors,
+                'categories' => $categories,
+            ], 200);
+        }
+
+        return response()->json([
+            'message' => 'key query parameter is required',
+        ], 400);
+    }
+}
