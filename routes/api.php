@@ -44,8 +44,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/instructors', [InstructorController::class, 'getInstructors']);
     Route::get('/instructors/{id}', [InstructorController::class, 'show']);
 
-//    //Search
-//    Route::get('/search', [SearchController::class, 'search']);
-//    Route::get('/autocomplete', [SearchController::class, 'autoComplete']);
+    //Search
+    Route::get('/search', [SearchController::class, 'search']);
+    Route::get('/autocomplete', [SearchController::class, 'autoComplete']);
 
 });
