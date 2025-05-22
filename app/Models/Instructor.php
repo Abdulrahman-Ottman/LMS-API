@@ -5,13 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Instructor extends Model
 {
     protected $fillable = [
         'verified',
         'full_name',
-        'views'
+        'views',
+        'bio',
+        'rating'
     ];
 
     public function user(): BelongsTo
@@ -25,5 +28,9 @@ class Instructor extends Model
     public function courses():HasMany
     {
         return $this->hasMany(Course::class);
+    }
+    public function ratings():HasMany
+    {
+      return $this->hasMany(InstructorRating::class);
     }
 }

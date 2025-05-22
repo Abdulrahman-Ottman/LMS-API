@@ -48,6 +48,7 @@ class CoursesTableSeeder extends Seeder
                     'description' => $coursesData[$randomTitle],
                     'price' =>  rand(1, 20).'0',
                     'level' => rand(1, 5) > 2 ? rand(1, 5) : null,
+                    'discount' => rand(0, 10) > 5 ? rand(1, 30) : 0,
                 ]);
                 $randomCategories = $categories->random(rand(1, min(2, $categories->count())));
                 $attachIds = [];

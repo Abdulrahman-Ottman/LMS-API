@@ -10,7 +10,7 @@ class UserFactory extends Factory
 {
     public function definition()
     {
-        $role = $this->faker->randomElement(['student', 'instructor', 'admin']);
+        $role = $this->faker->randomElement(['student', 'instructor']);
 
         $firstName = $this->faker->firstName;
         $lastName = $this->faker->lastName;

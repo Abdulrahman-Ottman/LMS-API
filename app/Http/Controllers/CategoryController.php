@@ -15,4 +15,12 @@ class CategoryController extends Controller
             'data' => $mainCategories
         ], 200);
     }
+
+    public function getSubCategories($id)
+    {
+        $subCategories = Category::where('parent_id', $id)->get();
+        return response()->json([
+            'data' => $subCategories
+        ], 200);
+    }
 }

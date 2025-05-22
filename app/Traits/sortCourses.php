@@ -26,6 +26,9 @@ trait SortCourses
                 case 'views_desc':
                     $coursesQuery->orderBy('views', 'desc');
                     break;
+                case 'rating':
+                    $coursesQuery->orderBy('rating', 'desc');
+                    break;    
             }
         }
         return $coursesQuery;

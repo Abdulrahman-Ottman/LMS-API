@@ -21,7 +21,7 @@ class SearchController extends Controller
         }
         $key = $request->get('key');
 
-        $coursesQuery = Course::with(['instructor:id,full_name', 'categories:id,name']);
+        $coursesQuery = Course::with(['instructor', 'categories:id,name']);
         $coursesQuery = $this->filterCourses($request, $coursesQuery);
         $sortBy = $request->get('sort_by');
         if ($sortBy) {
@@ -43,23 +43,26 @@ class SearchController extends Controller
                 break;
         }
 
+        $type = $request->get('type');
+        if ($type === 'courses') {
+            $courses = $coursesQuery->get();
+            return response()->json(['courses' => $courses], 200);
+        }
+        if ($type === 'categories') {
+            $categories = $categoriesQuery->get();
+            return response()->json(['categories' => $categories], 200);
+        }
+        if ($type === 'instructors') {
+            $instructors = $instructorsQuery->get();
+            return response()->json(['instructors' => $instructors], 200);
+        }
+
         $courses = $coursesQuery->get();
         $categories = $categoriesQuery->get();
         $instructors = $instructorsQuery->get();
 
         if ($courses->isEmpty() && $categories->isEmpty() && $instructors->isEmpty()) {
             return response()->json(['message' => 'No courses, categories, or instructors found.'], 404);
-        }
-
-        $type = $request->get('type');
-        if ($type === 'courses') {
-            return response()->json(['courses' => $courses], 200);
-        }
-        if ($type === 'categories') {
-            return response()->json(['categories' => $categories], 200);
-        }
-        if ($type === 'instructors') {
-            return response()->json(['instructors' => $instructors], 200);
         }
 
         return response()->json([
