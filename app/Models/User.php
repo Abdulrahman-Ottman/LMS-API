@@ -81,4 +81,9 @@ class User extends Authenticatable
     {
         return $this->role === self::ROLE_ADMIN;
     }
+    public function instructor() : HasOne
+    {
+        return $this->hasOne(Instructor::class);
+    }
+
 }

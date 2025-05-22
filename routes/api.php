@@ -1,4 +1,8 @@
 <?php
+
+use App\Http\Controllers\CourseController;
+use App\Http\Controllers\InstructorController;
+use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StudentController;
@@ -26,4 +30,22 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Categories
     Route::get('/categories/main', [CategoryController::class, 'getMainCategories']);
+    Route::get('/categories/{id}/subcategories', [CategoryController::class, 'getSubCategories']);
+
+    //Courses
+    Route::get('/courses', [CourseController::class, 'getCourses']);
+    Route::get('/courses/{id}', [CourseController::class, 'show']);
+    Route::post('/courses', [CourseController::class, 'store']);
+    Route::post('/courses/{id}', [CourseController::class, 'update']);
+    Route::delete('/courses/{id}', [CourseController::class, 'destroy']);
+    Route::get('/courses/{id}/view', [CourseController::class, 'addView']);
+
+    //Instructor
+    Route::get('/instructors', [InstructorController::class, 'getInstructors']);
+    Route::get('/instructors/{id}', [InstructorController::class, 'show']);
+
+//    //Search
+//    Route::get('/search', [SearchController::class, 'search']);
+//    Route::get('/autocomplete', [SearchController::class, 'autoComplete']);
+
 });
