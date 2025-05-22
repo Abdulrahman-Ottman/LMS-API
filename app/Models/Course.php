@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Course extends Model
 {
-    protected $fillable = ['instructor_id', 'title', 'description', 'price', 'level', 'image', 'views'];
+    protected $fillable = ['instructor_id', 'title', 'description', 'price', 'level', 'image', 'views', 'discount', 'rating'];
 
     public function instructor():BelongsTo
     {
@@ -19,7 +19,18 @@ class Course extends Model
     {
         return $this->belongsToMany(Category::class, 'course_category');
     }
-
+    public function ratings():HasMany
+    {
+        return $this->hasMany(CourseStudent::class);
+    }
+    public function reviews():HasMany
+    {
+        return $this->hasMany(CourseReview::class);
+    }
+    public function students():HasMany
+    {
+        return $this->hasMany(CourseStudent::class);
+    }
 //    public function lessons():HasMany
 //    {
 //        return $this->hasMany(Lesson::class);

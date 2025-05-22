@@ -20,6 +20,8 @@ return new class extends Migration
             $table->text('description');
             $table->float('price');
             $table->integer('level')->nullable();
+            $table->integer('rating')->default(0);
+            $table->decimal('discount', 5, 2)->default(0.00);
             $table->timestamps();
         });
     }

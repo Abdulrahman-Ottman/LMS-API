@@ -97,6 +97,8 @@ class AuthController
             $user->instructor()->create([
                 'full_name' => $user->first_name . ' ' . $user->last_name,
                 'views'     => 0,
+                'bio'       => $data['bio'],
+                'rating'    => 0,
             ]);
         }
         $user->load('student', 'instructor');

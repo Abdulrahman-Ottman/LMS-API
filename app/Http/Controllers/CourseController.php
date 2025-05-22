@@ -7,13 +7,16 @@ use App\Models\Course;
 use Illuminate\Http\Request;
 use App\Traits\FilterCourses;
 use App\Traits\SortCourses;
+use App\Models\CourseStudent;
+use App\Models\CourseReview;
+
 
 class CourseController extends Controller
 {
     use filterCourses, sortCourses;
     public function show($id)
     {
-        $course = Course::with(['instructor', 'categories'])->find($id);
+        $course = Course::with(['instructor', 'categories', 'reviews'])->find($id);
         if (!$course) {
             return response()->json(['message' => 'Course not found.'], 404);
         }
@@ -22,7 +25,7 @@ class CourseController extends Controller
 
     public function getCourses(Request $request)
     {
-        $coursesQuery = Course::select('id', 'title', 'description', 'price', 'level', 'instructor_id','views','image','created_at')
+        $coursesQuery = Course::select('id', 'title', 'description', 'price', 'level', 'instructor_id','views','image','created_at','rating','discount')
             ->with('instructor');
         $this->filterCourses($request, $coursesQuery);
 
@@ -65,7 +68,8 @@ class CourseController extends Controller
             'price' => 'required|numeric',
             'level' => 'integer|nullable',
             'category_ids' => 'required|array',
-            'category_ids.*' => 'exists:categories,id'
+            'category_ids.*' => 'exists:categories,id',
+            'discount' => 'numeric|min:0|max:100',
         ]);
 
         $path = $request->file('image')->store('images/course-images', 'public');
@@ -79,21 +83,21 @@ class CourseController extends Controller
             'price' => $request->price,
             'level' => $request->level,
             'views' => 0,
+            'discount' => $request->discount ?? 0.00,
         ]);
 
         foreach ($request->category_ids as $categoryId) {
             $category = Category::find($categoryId);
-            
             if ($category) {
                 $course->categories()->attach($categoryId);
-        
+
                 if (!$user->instructor->categories()->where('category_id', $categoryId)->exists()) {
                     $user->instructor->categories()->attach($categoryId);
                 }
-        
+
                 if ($category->parent_id) {
                     $course->categories()->attach($category->parent_id);
-        
+
                     if (!$user->instructor->categories()->where('category_id', $category->parent_id)->exists()) {
                         $user->instructor->categories()->attach($category->parent_id);
                     }
@@ -119,9 +123,10 @@ class CourseController extends Controller
             'level' => 'integer|nullable',
             'category_ids' => 'array',
             'category_ids.*' => 'exists:categories,id',
+            'discount' => 'numeric|min:0|max:100|nullable',
         ]);
 
-        $updateData = $request->only(['title', 'description', 'price', 'level']);
+        $updateData = $request->only(['title', 'description', 'price', 'level', 'discount']);
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('images/course-images', 'public');
             $path = 'storage/' . str_replace("public/", "", $path);
@@ -140,7 +145,7 @@ class CourseController extends Controller
             ->whereIn('categories.id', $oldCategoryIds)
             ->whereDoesntHave('courses', function ($query) use ($instructor) {
             $query->where('courses.instructor_id', $instructor->id);
-        })->pluck('categories.id'); 
+        })->pluck('categories.id');
 
         $instructor->categories()->detach($unusedCategories);
 
@@ -195,7 +200,41 @@ class CourseController extends Controller
         return response()->json([
             'message'           => 'View recorded successfully',
             'course_views'      => $course->views,
-            'instructor_views'  => $instructor,
+            'instructor_views'  => $instructorViews,
         ], 200);
+    }
+    public function rate(Request $request, $id)
+    {
+        $course = Course::findOrFail($id);
+        $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+        ]);
+        CourseStudent::updateOrCreate(
+            [
+                'student_id' => auth()->user()->student->id,
+                'course_id' => $id
+            ],
+            ['rating' => $request->rating]
+        );
+        $averageRating = CourseStudent::where('course_id', $id)->average('rating');
+        Course::where('id', $id)->update(['rating' => $averageRating]);
+
+        return response()->json([
+            'message' => 'Course rated successfully!',
+            'rating' => $averageRating,
+        ], 200);
+    }
+    public function review(Request $request, $id)
+    {
+        $course = Course::findOrFail($id);
+        $request->validate([
+            'review' => 'required|string',
+        ]);
+        CourseReview::create([
+            'student_id' => auth()->user()->student->id,
+            'course_id' => $id,
+            'review' => $request->review,
+        ]);
+        return response()->json(['message' => 'Course reviewed successfully!']);
     }
 }

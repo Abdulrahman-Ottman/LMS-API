@@ -13,7 +13,7 @@ trait filterCourses
                     ->orWhereHas('instructor', function ($instructorQuery) use ($key) {
                         $instructorQuery->where('full_name', 'LIKE', '%' . $key . '%');
                     });
-            })->with('instructor');
+            });
         }
 
         if ($instructor = $request->get('instructor')) {
@@ -53,6 +53,11 @@ trait filterCourses
         if ($minViews = $request->get('min_views')) {
             if ($coursesQuery) {
                 $coursesQuery->where('views', '>=', $minViews);
+            }
+        }
+        if ($minRating = $request->get('min_rating')) {
+            if ($coursesQuery) {
+                $coursesQuery->where('rating', '>=', $minRating);
             }
         }
         return $coursesQuery;
