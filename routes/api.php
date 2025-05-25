@@ -2,23 +2,22 @@
 
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\InstructorController;
+use App\Http\Controllers\LessonController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SectionController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\CategoryController;
-
-// Public routes
-Route::middleware(['throttle:60,1'])->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/register/verify', [AuthController::class, 'verifyRegister']);
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/auth/google', [AuthController::class, 'googleSignIn']);
-
-    // Reset & password-related
-    Route::post('/password/forgot', [AuthController::class, 'sendResetCode']); // Send reset code
-    Route::post('/password/reset', [AuthController::class, 'resetPassword']);    // Set new password
-});
+require __DIR__.'/lessons.php';
+require __DIR__.'/auth.php';
+require __DIR__.'/students.php';
+require __DIR__.'/instructors.php';
+require __DIR__.'/categories.php';
+require __DIR__.'/courses.php';
+require __DIR__.'/sections.php';
+require __DIR__.'/lessons.php';
+require __DIR__.'/search.php';
 
 // Authenticated routes
 Route::middleware(['auth:sanctum'])->group(function () {
@@ -43,6 +42,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/courses/{id}/view', [CourseController::class, 'addView']);
         Route::post('/courses/{id}/rate', [CourseController::class, 'rate']);
         Route::post('/courses/{id}/review', [CourseController::class, 'review']);
+        //sections
+        Route::get('/courses/{course}/sections', [SectionController::class, 'getAllSections']);
+        Route::get('/sections/{id}/lessons', [SectionController::class, 'lessons']);
+
+
     });
 
     // Instructor specific routes
@@ -65,4 +69,36 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/search', [SearchController::class, 'search']);
         Route::get('/autocomplete', [SearchController::class, 'autoComplete']);
     });
+
+
+    //sections (instructor routes)
+    Route::middleware(['role:instructor'])->group(function () {
+        Route::post('/sections', [SectionController::class, 'store']);
+        Route::put('/sections/{id}', [SectionController::class, 'update']);
+        Route::delete('/sections/{id}', [SectionController::class, 'destroy']);
+    });
+
+
+    //lessons
+    Route::prefix('courses/{course}/sections/{section}/lessons')->group(function () {
+//        Route::middleware(['role:student'])->group(function () {
+//            Route::get('/{id}', [LessonController::class, 'show']);
+////            Route::get('/{id}/stream', [LessonController::class, 'streamVideo']);
+//        });
+        Route::middleware(['role:instructor'])->group(function () {
+            Route::post('/', [LessonController::class, 'store']);      // Create a lesson under section
+        });
+
+
+        Route::middleware(['role:instructor'])->group(function () {
+            Route::put('/{id}', [LessonController::class, 'update']);
+            Route::delete('/{id}', [LessonController::class, 'destroy']);
+        });
+//        Route::middleware(['role:student'])->group(function () {
+//            Route::get('/', [LessonController::class, 'index']);       // Get all lessons in section (optional)
+//        });
+    });
+
+
+
 });
