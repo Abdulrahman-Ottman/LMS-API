@@ -33,4 +33,10 @@ class Instructor extends Model
     {
       return $this->hasMany(InstructorRating::class);
     }
+
+
+    public function coupons()
+    {
+        return $this->hasMany(Coupon::class);
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lesson;
+use App\Models\LessonStudent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -101,5 +102,30 @@ class LessonController extends Controller
     }
 
 
+    public function completeLesson(Request $request, $LessonId)
+    {
+        // Assuming the user is authenticated and linked to a student
+        $student = auth()->user()->student ?? null;
 
+        if (!$student) {
+            return response()->json(['message' => 'Student is not authorized.'], 403);
+        }
+
+        // Check if the lesson is already marked as completed
+        $alreadyCompleted = LessonStudent::where('lesson_id', $LessonId)
+            ->where('student_id', $student->id)
+            ->exists();
+
+        if ($alreadyCompleted) {
+            return response()->json(['message' => 'This lesson has already been completed.'], 200);
+        }
+
+        // Mark lesson as completed
+        LessonStudent::create([
+            'lesson_id' => $LessonId,
+            'student_id' => $student->id,
+        ]);
+
+        return response()->json(['message' => 'Lesson marked as completed successfully.'], 201);
+    }
 }
