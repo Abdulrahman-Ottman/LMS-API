@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Lesson extends Model
 {
-    protected $fillable =['title','section_id','duration','script','video_url'];
+    protected $fillable =['title','section_id','duration','views','file_name'];
 
     public  function section(): BelongsTo{
         return $this->belongsTo(Section::class);

@@ -6,37 +6,34 @@ use App\Models\Lesson;
 use App\Models\LessonStudent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use FFMpeg\FFMpeg;
 
 class LessonController extends Controller
 {
-    // Store a new lesson
-    public function store(Request $request)
+    public function store(Request $request, FFMpeg $ffmpeg)
     {
         $request->validate([
             'title' => 'required|string',
             'section_id' => 'required|exists:sections,id',
-            'duration' => 'required|numeric|min:0',
-            'video' => 'required|file|mimes:mp4,mov,ogg,webm|max:51200', // 50MB max
+            'video' => 'required|file|mimes:mp4,mov,ogg,webm|max:512000',
         ]);
 
-        // Save to local storage in storage/app/videos
         $path = $request->file('video')->store('videos');
+        $filename = basename($path);
+        $video = $ffmpeg->open(storage_path('app/private/' . $path));
+        $duration = (int)$video->getFormat()->get('duration');
 
         $lesson = Lesson::create([
             'title' => $request->title,
             'section_id' => $request->section_id,
-            'duration' => $request->duration,
-            'video_url' => $path, // e.g. videos/filename.mp4
+            'duration' => $duration,
+            'file_name' => $filename,
         ]);
-
         return response()->json($lesson, 201);
     }
 
-    // Show one lesson
     public function show($id)
     {
-        //get comments
         $lesson = Lesson::with([
             'section.course.instructor:id,name'
         ])->find($id);
@@ -52,67 +49,57 @@ class LessonController extends Controller
             'file_name' => $lesson->file_name,
             'duration' => $lesson->duration,
             'instructor' => [
-                'id' => $lesson->section->course->instructor->id ?? null,
-                'name' => $lesson->section->course->instructor->full_name ?? null,
+                'id' => $lesson->section->course->instructor->id,
+                'name' => $lesson->section->course->instructor->full_name,
             ],
         ]);
     }
 
-
-    // Update lesson
-    public function update(Request $request, $id)
+    public function update(Request $request, $id, FFMpeg $ffmpeg)
     {
         $lesson = Lesson::findOrFail($id);
 
         $request->validate([
             'title' => 'sometimes|string',
             'section_id' => 'sometimes|exists:sections,id',
-            'duration' => 'sometimes|numeric|min:0',
-            'script' => 'nullable|string',
-            'video' => 'sometimes|file|mimes:mp4,mov,ogg,webm|max:51200',
+            'video' => 'sometimes|file|mimes:mp4,mov,ogg,webm|max:512000',
         ]);
 
+        $dataToUpdate = $request->only(['title', 'section_id']);
+
         if ($request->hasFile('video')) {
-            // Delete old video from local storage
-            if ($lesson->video_url && Storage::disk('local')->exists($lesson->video_url)) {
-                Storage::disk('local')->delete($lesson->video_url);
+            $path = 'videos/' .$lesson->file_name;
+            if (Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->delete($path);
             }
 
-            // Save new video
-            $lesson->video_url = $request->file('video')->store('videos');
-        }
+            $path = $request->file('video')->store('videos');
+            $dataToUpdate['file_name']  = basename($path);
+            $video = $ffmpeg->open(storage_path('app/private/' . $path));
+            $dataToUpdate['duration']  = (int)$video->getFormat()->get('duration');
 
-        $lesson->update($request->only(['title', 'section_id', 'duration', 'script', 'video_url']));
+        }
+        $lesson->update($dataToUpdate);
 
         return response()->json($lesson);
     }
 
-    // Delete lesson
     public function destroy($id)
     {
         $lesson = Lesson::findOrFail($id);
-
-        if ($lesson->video_url && Storage::disk('local')->exists($lesson->video_url)) {
-            Storage::disk('local')->delete($lesson->video_url);
+        $path = 'videos/' .$lesson->file_name;
+        if (Storage::disk('local')->exists($path)) {
+            Storage::disk('local')->delete($path);
         }
-
         $lesson->delete();
-
         return response()->json(['message' => 'Lesson deleted']);
     }
 
-
-    public function completeLesson(Request $request, $LessonId)
+    public function completeLesson(Request $request, $lessonId)
     {
-        // Assuming the user is authenticated and linked to a student
-        $student = auth()->user()->student ?? null;
+        $student = auth()->user()->student;
 
-        if (!$student) {
-            return response()->json(['message' => 'Student is not authorized.'], 403);
-        }
-
-        // Check if the lesson is already marked as completed
-        $alreadyCompleted = LessonStudent::where('lesson_id', $LessonId)
+        $alreadyCompleted = LessonStudent::where('lesson_id', $lessonId)
             ->where('student_id', $student->id)
             ->exists();
 
@@ -120,11 +107,24 @@ class LessonController extends Controller
             return response()->json(['message' => 'This lesson has already been completed.'], 200);
         }
 
-        // Mark lesson as completed
         LessonStudent::create([
-            'lesson_id' => $LessonId,
+            'lesson_id' => $lessonId,
             'student_id' => $student->id,
         ]);
+
+        $lesson = Lesson::findOrFail($lessonId);
+        $course = $lesson->section->course()->with('sections.lessons')->first();
+        $allLessons = $course->sections->flatMap->lessons;
+
+        $completedLessonsCount = LessonStudent::whereIn('lesson_id', $allLessons->pluck('id'))
+            ->where('student_id', $student->id)
+            ->count();
+
+        if ($completedLessonsCount === $allLessons->count()) {
+            CourseStudent::where('student_id', $student->id)
+                ->where('course_id', $course->id)
+                ->update(['status' => 'completed']);
+        }
 
         return response()->json(['message' => 'Lesson marked as completed successfully.'], 201);
     }

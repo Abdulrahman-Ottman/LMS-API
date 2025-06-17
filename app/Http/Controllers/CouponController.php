@@ -16,7 +16,7 @@ class CouponController extends Controller
             'expires_at' => 'nullable|date|after:today',
         ]);
 
-        $instructor = auth()->user()->instructor; // assuming instructors are tied to users
+        $instructor = auth()->user()->instructor;
 
         $coupon = $instructor->coupons()->create([
             'code' => $request->code,
@@ -25,7 +25,7 @@ class CouponController extends Controller
             'is_active' => true,
         ]);
 
-        return response()->json(['message' => 'تم إنشاء الكوبون بنجاح', 'coupon' => $coupon]);
+        return response()->json(['message' => 'Coupon created successfully', 'coupon' => $coupon]);
     }
 
     public function applyCoupon(Request $request, Course $course)
@@ -52,12 +52,13 @@ class CouponController extends Controller
         }
 
         $price = $course->price;
-        $discount = ($price * $coupon->value);
-        $finalPrice = max(0, $price - $discount);
+        $price *= (100 - $course->discount);
+        $couponDiscount = ($price * $coupon->value)/100;
+        $finalPrice = max(0, $price - $couponDiscount);
 
         return response()->json([
             'original_price' => $price,
-            'discount' => $discount,
+            'discount' => $couponDiscount,
             'final_price' => $finalPrice,
             'discount_percentage' => $coupon->value
         ]);

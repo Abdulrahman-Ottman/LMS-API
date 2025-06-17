@@ -20,6 +20,12 @@ class CourseController extends Controller
         if (!$course) {
             return response()->json(['message' => 'Course not found.'], 404);
         }
+        $courses = $course->status = $course->students()
+            ->where('student_id', auth()->user()->student->id)
+            ->pluck('status')
+            ->first();
+        unset($course->students);
+
         return response()->json(['data' => $course]);
     }
 
@@ -36,10 +42,20 @@ class CourseController extends Controller
 
         $courses = $coursesQuery->paginate(10);
         $courses->appends($request->query());
+        
 
         if ($courses->isEmpty()) {
             return response()->json(['message' => 'No courses available.'], 404);
         }
+
+        $courses->getCollection()->transform(function ($course) {
+            $course->status = $course->students()
+                ->where('student_id', auth()->user()->student->id)
+                ->pluck('status')
+                ->first();
+            unset($course->students);
+            return $course;
+        });
 
         return response()->json([
             'current_page' => $courses->currentPage(),

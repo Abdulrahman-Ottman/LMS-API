@@ -31,7 +31,6 @@ class SectionController extends Controller
     }
     public function store(Request $request)
     {
-
         $request->validate([
             'title' => 'required|string|max:255',
             'course_id' => 'required|exists:courses,id',

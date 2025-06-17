@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->foreignId('section_id')->constrained('sections')->onDelete('cascade');
-            $table->float('duration');
+            $table->integer('duration');
             $table->string('file_name');
-            $table->integer('views');
+            $table->integer('views')->default(0);
             $table->timestamps();
         });
     }

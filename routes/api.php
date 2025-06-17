@@ -1,14 +1,6 @@
 <?php
 
-use App\Http\Controllers\CourseController;
-use App\Http\Controllers\InstructorController;
-use App\Http\Controllers\LessonController;
-use App\Http\Controllers\SearchController;
-use App\Http\Controllers\SectionController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\StudentController;
-use App\Http\Controllers\CategoryController;
 require __DIR__.'/lessons.php';
 require __DIR__.'/auth.php';
 require __DIR__.'/students.php';
