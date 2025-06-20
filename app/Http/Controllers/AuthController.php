@@ -25,22 +25,20 @@ class AuthController
             'password' => 'required|min:6|confirmed',
             'role' => 'required|in:' . implode(',', [User::ROLE_STUDENT, User::ROLE_INSTRUCTOR]),
         ]);
-//        if($request->role == User::ROLE_INSTRUCTOR) {
-//            $request->validate([
-//               'bio' => 'required',
-//            ]);
-//        }
-//        $code = rand(100000, 999999);
-//
-//        Cache::put('register_' . $request->email, [
-//            'data' => $request->only(['first_name', 'last_name', 'user_name', 'email', 'password', 'role', 'bio']),
-//            'data' => $request->except('password_confirmation'),
-//            'code' => $code,
-//        ], now()->addMinutes(15));
-//
+        if($request->role == User::ROLE_INSTRUCTOR) {
+            $request->validate([
+               'bio' => 'required',
+            ]);
+        }
+        $code = rand(100000, 999999);
+
+        Cache::put('register_' . $request->email, [
+            'data' => $request->only(['first_name', 'last_name', 'user_name', 'email', 'password', 'role', 'bio']),
+            'data' => $request->except('password_confirmation'),
+            'code' => $code,
+        ], now()->addMinutes(15));
+
 //         $cached = Cache::get('register_' . $request->email);
-//
-//
 //         $data = $cached['data'];
 //         $data['password'] = bcrypt($data['password']);
 //         $user = User::create($data);
@@ -69,7 +67,6 @@ class AuthController
 //         ]);
 
         Mail::to($request->email)->send(new VerificationCodeMail($code));
-
         return response()->json(['message' => 'Verification code sent to your email.']);
 
     }
