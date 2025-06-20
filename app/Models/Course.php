@@ -25,7 +25,7 @@ class Course extends Model
     }
     public function sections():HasMany
     {
-        return $this->hasMany(Section::class);
+        return $this->hasMany(Section::class)->orderBy('order');
     }
     public function reviews():HasMany
     {

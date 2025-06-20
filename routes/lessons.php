@@ -12,15 +12,13 @@ Route::prefix('lessons')->group(function () {
     Route::middleware(['role:student'])->group(function () {
         Route::get('/{id}', [LessonController::class, 'show']);
         Route::post('/{id}/complete', [LessonController::class, 'completeLesson']);
-//         Route::get('/{id}/stream', [LessonController::class, 'streamVideo']);
     });
 
     Route::middleware(['role:instructor'])->group(function () {
-        Route::put('/{id}', [LessonController::class, 'update']);
+        Route::post('/{id}', [LessonController::class, 'update']);
         Route::delete('/{id}', [LessonController::class, 'destroy']);
         Route::post('/', [LessonController::class, 'store']);
     });
-
 });
 });
 

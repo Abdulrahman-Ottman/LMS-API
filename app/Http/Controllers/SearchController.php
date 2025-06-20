@@ -20,8 +20,7 @@ class SearchController extends Controller
             ], 400);
         }
         $key = $request->get('key');
-        //
-        $coursesQuery = Course::with(['instructor', 'categories:id,name', 'students:id,status as status']);
+        $coursesQuery = Course::with(['instructor', 'categories:id,name', 'students:id,status']);
         $coursesQuery = $this->filterCourses($request, $coursesQuery);
         $sortBy = $request->get('sort_by');
         if ($sortBy) {
@@ -62,7 +61,12 @@ class SearchController extends Controller
             return response()->json(['instructors' => $instructors], 200);
         }
 
-        $courses = $coursesQuery->get();
+        $courses = $coursesQuery->get()->map(function ($course) {
+            $course->status = $course->students()
+                ->where('student_id', auth()->user()->student->id)->pluck('status')->first();
+            unset($course->students);
+            return $course;
+        });
         $categories = $categoriesQuery->get();
         $instructors = $instructorsQuery->get();
 

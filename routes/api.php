@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 require __DIR__.'/lessons.php';
 require __DIR__.'/auth.php';
 require __DIR__.'/students.php';
@@ -11,6 +10,8 @@ require __DIR__.'/sections.php';
 require __DIR__.'/lessons.php';
 require __DIR__.'/search.php';
 require __DIR__.'/coupon.php';
+require __DIR__.'/payments.php';
+require __DIR__.'/videos.php';
 
 // Authenticated routes
 //Route::middleware(['auth:sanctum'])->group(function () {
@@ -91,6 +92,3 @@ require __DIR__.'/coupon.php';
 ////            Route::get('/', [LessonController::class, 'index']);       // Get all lessons in section (optional)
 ////        });
 //    });
-
-
-

@@ -9,9 +9,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/sections/{id}/lessons', [SectionController::class, 'lessons']);
     });
 
-    Route::middleware(['role:instructor'])->group(function () {
-        Route::post('/sections', [SectionController::class, 'store']);
-        Route::put('/sections/{id}', [SectionController::class, 'update']);
-        Route::delete('/sections/{id}', [SectionController::class, 'destroy']);
+    Route::middleware(['role:instructor'])->prefix('sections')->group(function () {
+        Route::post('/', [SectionController::class, 'store']);
+        Route::put('/{id}', [SectionController::class, 'update']);
+        Route::delete('/{id}', [SectionController::class, 'destroy']);
+        Route::put('/{id}/lessons/order', [SectionController::class, 'updateLessonsOrder']);
     });
 });

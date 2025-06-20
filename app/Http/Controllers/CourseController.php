@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Course;
+use App\Models\Section;
 use Illuminate\Http\Request;
 use App\Traits\FilterCourses;
 use App\Traits\SortCourses;
 use App\Models\CourseStudent;
 use App\Models\CourseReview;
+use Illuminate\Support\Facades\Storage;
 
 
 class CourseController extends Controller
@@ -20,7 +22,7 @@ class CourseController extends Controller
         if (!$course) {
             return response()->json(['message' => 'Course not found.'], 404);
         }
-        $courses = $course->status = $course->students()
+        $course->status = $course->students()
             ->where('student_id', auth()->user()->student->id)
             ->pluck('status')
             ->first();
@@ -32,7 +34,7 @@ class CourseController extends Controller
     public function getCourses(Request $request)
     {
         $coursesQuery = Course::select('id', 'title', 'description', 'price', 'level', 'instructor_id','views','image','created_at','rating','discount')
-            ->with('instructor');
+            ->with(['instructor','categories:id,name']);
         $this->filterCourses($request, $coursesQuery);
 
         $sortBy = $request->get('sort_by');
@@ -42,7 +44,7 @@ class CourseController extends Controller
 
         $courses = $coursesQuery->paginate(10);
         $courses->appends($request->query());
-        
+
 
         if ($courses->isEmpty()) {
             return response()->json(['message' => 'No courses available.'], 404);
@@ -73,8 +75,8 @@ class CourseController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user->isInstructor()||!$user->instructor->verified) {
-            return response()->json(['message' => 'Unauthorized access.'], 403);
+        if (!$user->instructor->verified) {
+            return response()->json(['message' => 'Not verified account.'], 403);
         }
 
         $request->validate([
@@ -186,7 +188,7 @@ class CourseController extends Controller
 
     public function destroy($id)
     {
-        $course = Course::findOrFail($id);
+        $course = Course::with('sections.lessons')->findOrFail($id);
         if (($course->instructor_id != auth()->user()->instructor->id)&&!auth()->user()->isAdmin()) {
             return response()->json(['message' => 'Unauthorized access.'], 403);
         }
@@ -203,9 +205,27 @@ class CourseController extends Controller
 
         $instructor->categories()->detach($oldCategoriesIds);
         $instructor->categories()->attach($unusedCategoriesIds);
+
+
+        foreach ($course->sections as $section) {
+            foreach ($section->lessons as $lesson) {
+                $path = 'videos/' .$lesson->file_name;
+                if (Storage::disk('local')->exists($path)) {
+                    Storage::disk('local')->delete($path);
+                    $prefix = pathinfo($lesson->file_name, PATHINFO_FILENAME);
+                    $subtitleFiles = Storage::disk('local')->files('subtitles');
+                    foreach ($subtitleFiles as $file) {
+                        $filename = basename($file);
+                        if (strpos($filename, $prefix . '-') === 0 && substr($filename, -4) === '.vtt') {
+                            Storage::disk('local')->delete($file);
+                        }
+                    }
+                }
+            }
+        }
         $course->delete();
 
-        return response()->json(['message' => 'Course deleted successfully.'], 204);
+        return response()->json(['message' => 'Course deleted successfully.'], 200);
     }
     public function addView($id)
     {
@@ -242,7 +262,7 @@ class CourseController extends Controller
     }
     public function review(Request $request, $id)
     {
-        $course = Course::findOrFail($id);
+        Course::findOrFail($id);
         $request->validate([
             'review' => 'required|string',
         ]);
@@ -252,5 +272,31 @@ class CourseController extends Controller
             'review' => $request->review,
         ]);
         return response()->json(['message' => 'Course reviewed successfully!']);
+    }
+    public function updateSectionsOrder(Request $request, $courseId)
+    {
+        $course = Course::with('sections')->findOrFail($courseId);
+        if (auth()->user()->id !== $course->instructor->user_id) {
+            return response()->json( ['messsage' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'order' => 'required|array',
+            'order.*' => 'integer|distinct',
+        ]);
+
+        $existingIds = $course->sections->pluck('id')->toArray();
+        $newOrder = $request->order;
+        sort($existingIds);
+        sort($newOrder);
+        if ($existingIds != $newOrder) {
+            return response()->json(['error' => 'Order array must contain all section IDs.'], 422);
+        }
+
+        foreach ($request->order as $index => $sectionId) {
+            Section::where('id', $sectionId)->update(['order' => $index + 1]);
+        }
+
+        return response()->json(['message' => 'Sections reordered successfully']);
     }
 }

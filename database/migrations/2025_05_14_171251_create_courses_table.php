@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('instructor_id')->constrained('instructors')->onDelete('cascade');
             $table->string('title');
             $table->string('image');
-            $table->integer('views');
+            $table->integer('views')->default(0);
             $table->text('description');
             $table->float('price');
             $table->integer('level')->nullable();
