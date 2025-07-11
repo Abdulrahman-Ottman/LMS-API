@@ -40,7 +40,7 @@ class LessonController extends Controller
     public function show($id)
     {
         $lesson = Lesson::with([
-            'section.course.instructor:id,name'
+            'section.course.instructor:id,name,avatar'
         ])->find($id);
 
         if (!$lesson) {
@@ -48,15 +48,16 @@ class LessonController extends Controller
         }
 
         return response()->json([
-            'id' => $lesson->id,
-            'title' => $lesson->title,
-            'section_id' => $lesson->section_id,
-            'file_name' => $lesson->file_name,
-            'duration' => $lesson->duration,
-            'instructor' => [
-                'id' => $lesson->section->course->instructor->id,
-                'name' => $lesson->section->course->instructor->full_name,
-            ],
+                'id' => $lesson->id,
+                'title' => $lesson->title,
+                'section_id' => $lesson->section_id,
+                'file_name' => $lesson->file_name,
+                'duration' => $lesson->duration,
+                'instructor' => [
+                    'id' => $lesson->section->course->instructor->id,
+                    'name' => $lesson->section->course->instructor->full_name,
+                    'avatar' => $lesson->section->course->instructor->avatar,
+                ],
         ]);
     }
 
@@ -129,9 +130,9 @@ class LessonController extends Controller
             ->where('student_id', $student->id)
             ->exists();
 
-//        if ($alreadyCompleted) {
-//            return response()->json(['message' => 'This lesson has already been completed.'], 200);
-//        }
+       if ($alreadyCompleted) {
+           return response()->json(['message' => 'This lesson has already been completed.'], 200);
+       }
 
         LessonStudent::create([
             'lesson_id' => $lessonId,

@@ -17,6 +17,14 @@ class Instructor extends Model
         'rating'
     ];
 
+    protected $appends = ['avatar'];
+    protected $hidden = ['user'];
+
+    public function getAvatarAttribute()
+    {
+        return $this->user ? asset($this->user->avatar) : null;
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
