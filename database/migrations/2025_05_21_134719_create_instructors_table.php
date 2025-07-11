@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignIdFor(User::class)->constrained()->cascadeOnDelete();
             $table->boolean('verified')->default(false);
             $table->string('full_name');
-            $table->string('views');
+            $table->string('views')->default(0);
             $table->string('bio');
             $table->integer('rating')->default(0);
             $table->timestamps();

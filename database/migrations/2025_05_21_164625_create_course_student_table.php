@@ -17,7 +17,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('student_id')->constrained()->onDelete('cascade');
             $table->foreignId('course_id')->constrained()->onDelete('cascade');
-            $table->integer('rating');
+            $table->integer('rating')->nullable();
+            $table->enum('status', ['wishlist', 'enrolled','completed'])->nullable();
             $table->timestamps();
         });
     }

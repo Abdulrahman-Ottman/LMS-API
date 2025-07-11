@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class AuthController
 {
@@ -18,26 +19,46 @@ class AuthController
     public function register(Request $request)
     {
         $request->validate([
-            'first_name' => 'required',
-            'last_name' => 'required',
-            'user_name' => 'required',
+            'first_name' => 'required|string',
+            'last_name' => 'required|string',
+            'user_name' => 'required|string',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6|confirmed',
             'role' => 'required|in:' . implode(',', [User::ROLE_STUDENT, User::ROLE_INSTRUCTOR]),
+            'avatar' => 'file|image|max:10240',
         ]);
-
+        if($request->role == User::ROLE_INSTRUCTOR) {
+            $request->validate([
+               'bio' => 'required',
+            ]);
+        }
         $code = rand(100000, 999999);
-
+        $avatarData = null;
+        $avatarExt = null;
+        if ($request->hasFile('avatar')) {
+            $file = $request->file('avatar');
+            $avatarData = base64_encode(file_get_contents($file->getRealPath()));
+            $avatarExt = $file->getClientOriginalExtension();
+        }
+        $cachedData = $request->only(['first_name', 'last_name', 'user_name', 'email', 'password', 'role']);
+        if ($request->role === User::ROLE_INSTRUCTOR) {
+            $cachedData['bio'] = $request->input('bio');
+        }
+        $cachedData['avatar_data'] = $avatarData;
+        $cachedData['avatar_ext'] = $avatarExt;
         Cache::put('register_' . $request->email, [
-            'data' => $request->only(['first_name', 'last_name', 'user_name', 'email', 'password', 'role']),
-            'data' => $request->except('password_confirmation'),
+            'data' => $cachedData,
             'code' => $code,
         ], now()->addMinutes(15));
 
         // $cached = Cache::get('register_' . $request->email);
-
-
         // $data = $cached['data'];
+        // if (!empty($data['avatar_data']) && !empty($data['avatar_ext'])) {
+        //     $filename = Str::uuid() . '.' . $data['avatar_ext'];
+        //     Storage::disk('public')->put('images/avatars/' . $filename, base64_decode($data['avatar_data']));
+        //     $data['avatar'] = 'storage/images/avatars/' . $filename;
+        // }
+        // unset($data['avatar_data'], $data['avatar_ext']);
         // $data['password'] = bcrypt($data['password']);
         // $user = User::create($data);
 
@@ -51,9 +72,14 @@ class AuthController
         //     $user->instructor()->create([
         //         'full_name' => $user->first_name . ' ' . $user->last_name,
         //         'views'     => 0,
+        //         'bio'       => $data['bio'],
+        //         'rating'    => 0,
         //     ]);
         // }
-        // $user->load('student', 'instructor');
+        // if($user->isStudent())
+        //     $user->load('student');
+        // else if ($user->isInstructor())
+        //     $user->load('instructor');
 
         // $token = $user->createToken('mobile')->plainTextToken;
 
@@ -61,11 +87,9 @@ class AuthController
         //     'message' => 'Registration completed.',
         //     'user'    => $user,
         //     'token'   => $token,
-        //     'profile' => $user->student ?? $user->instructor,
         // ]);
 
         Mail::to($request->email)->send(new VerificationCodeMail($code));
-
         return response()->json(['message' => 'Verification code sent to your email.']);
 
     }
@@ -84,6 +108,12 @@ class AuthController
         }
 
         $data = $cached['data'];
+        if (!empty($data['avatar_data']) && !empty($data['avatar_ext'])) {
+            $filename = Str::uuid() . '.' . $data['avatar_ext'];
+            Storage::disk('public')->put('images/avatars/' . $filename, base64_decode($data['avatar_data']));
+            $data['avatar'] = 'storage/images/avatars/' . $filename;
+        }
+        unset($data['avatar_data'], $data['avatar_ext']);
         $data['password'] = bcrypt($data['password']);
         $user = User::create($data);
 
@@ -101,7 +131,10 @@ class AuthController
                 'rating'    => 0,
             ]);
         }
-        $user->load('student', 'instructor');
+        if($user->isStudent())
+            $user->load('student');
+        else if ($user->isInstructor())
+            $user->load('instructor');
 
         $token = $user->createToken('mobile')->plainTextToken;
 
@@ -109,7 +142,6 @@ class AuthController
             'message' => 'Registration completed.',
             'user'    => $user,
             'token'   => $token,
-            'profile' => $user->student ?? $user->instructor,
         ]);
     }
 
@@ -121,12 +153,15 @@ class AuthController
         }
 
         $user = Auth::user();
+        if($user->isStudent())
+            $user->load('student');
+        else if ($user->isInstructor())
+            $user->load('instructor');
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
             'token'   => $token,
             'user'    => $user,
-            'profile' => $user->student ?? $user->instructor,
         ], 200);
     }
 
@@ -147,7 +182,6 @@ class AuthController
 
         $email = $payload['email'];
         $user_name = $payload['name'];
-
         $user = User::where('email', $email)->first();
 
         if (!$user) {

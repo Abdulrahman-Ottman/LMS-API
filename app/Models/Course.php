@@ -23,6 +23,10 @@ class Course extends Model
     {
         return $this->hasMany(CourseStudent::class);
     }
+    public function sections():HasMany
+    {
+        return $this->hasMany(Section::class)->orderBy('order');
+    }
     public function reviews():HasMany
     {
         return $this->hasMany(CourseReview::class);

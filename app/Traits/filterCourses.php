@@ -36,10 +36,10 @@ trait filterCourses
             }
         }
 
-        if ($categoryName = $request->get('category')) {
+        if ($categoryNames = $request->get('category')) {
             if ($coursesQuery) {
-                $coursesQuery->whereHas('categories', function ($query) use ($categoryName) {
-                    $query->where('name', $categoryName);
+                $coursesQuery->whereHas('categories', function ($query) use ($categoryNames) {
+                    $query->whereIn('name', $categoryNames);
                 });
             }
         }
