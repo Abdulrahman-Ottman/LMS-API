@@ -11,7 +11,12 @@ class InstructorController extends Controller
 {
     public function getInstructors(Request $request)
     {
-        $instructorsQuery = Instructor::query();
+        $instructorsQuery = Instructor::query()->with('categories');
+        if ($categoryNames = $request->get('category')) {
+            $instructorsQuery->whereHas('categories', function ($query) use ($categoryNames) {
+                $query->whereIn('name', $categoryNames);
+            });
+        }
         switch ($request->get('sort_by')) {
             case 'views_asc':
                 $instructorsQuery->orderBy('views', 'asc');
