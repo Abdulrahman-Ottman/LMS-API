@@ -18,7 +18,11 @@ class CourseController extends Controller
     use filterCourses, sortCourses;
     public function show($id)
     {
-        $course = Course::with(['instructor', 'categories', 'reviews'])->find($id);
+$course = Course::with([
+    'instructor',
+    'categories',
+    'reviews.student.user:id,user_name,avatar'
+])->find($id);
         if (!$course) {
             return response()->json(['message' => 'Course not found.'], 404);
         }
