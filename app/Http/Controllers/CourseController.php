@@ -19,10 +19,11 @@ class CourseController extends Controller
     public function show($id)
     {
 $course = Course::with([
-    'instructor',
-    'categories',
-    'reviews.student.user:id,user_name,avatar'
-])->find($id);
+        'instructor',
+        'categories',
+        'reviews.student.user:id,user_name,avatar',
+        'sections.lessons'
+    ])->find($id);
         if (!$course) {
             return response()->json(['message' => 'Course not found.'], 404);
         }
@@ -32,7 +33,17 @@ $course = Course::with([
             ->first();
         unset($course->students);
 
-        return response()->json(['data' => $course]);
+        
+    $sectionCount = $course->sections->count();
+    $lessonCount = $course->sections->flatMap->lessons->count();
+    $totalDuration = $course->sections->flatMap->lessons->sum('duration');
+        return response()->json([
+        'data' => $course ,
+        'meta' => [
+            'section_count' => $sectionCount,
+            'lesson_count' => $lessonCount,
+            'total_duration' => $totalDuration
+        ]]);
     }
 
     public function getCourses(Request $request)
