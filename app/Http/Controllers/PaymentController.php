@@ -25,8 +25,18 @@ class PaymentController extends Controller
         $course = Course::find($courseId);
 
         $price = $course->price;
-        $price *= (100 - $course->discount);
+        if($price==0) {
+            CourseStudent::updateOrCreate(
+                [
+                    'student_id' => $student->id,
+                    'course_id' => $courseId,
+                ],
+                ['status' => 'enrolled']
+            );
+            return response()->json(['message' => 'Payment successful.']);
+        }
 
+        $price *= (100 - $course->discount) / 100;
         if ($couponCode) {
             $coupon = Coupon::where('code', $couponCode)
                 ->where('is_active', true)
@@ -41,11 +51,8 @@ class PaymentController extends Controller
             if ($course->instructor_id !== $coupon->instructor_id) {
                 return response()->json(['error' => 'Invalid or expired coupon'], 422);
             }
-
             $price *= (100 - $coupon->value) / 100;
-
         }
-
         try {
             $intent = PaymentIntent::create([
                 'amount' => (int)$price,
