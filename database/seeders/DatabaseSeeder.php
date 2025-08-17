@@ -21,7 +21,9 @@ class DatabaseSeeder extends Seeder
             CategoryStudentTableSeeder::class,
             InstructorsTableSeeder::class,
             InstructorCategoryTableSeeder::class,
-            CoursesTableSeeder::class
+            CoursesTableSeeder::class,
+            SectionsTableSeeder::class,
+            LessonsTableSeeder::class,
         ]);
     }
 }
