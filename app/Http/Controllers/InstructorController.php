@@ -43,8 +43,23 @@ class InstructorController extends Controller
     }
     public function show($id)
     {
-        $instructor = Instructor::with(['categories', 'courses'])->findOrFail($id);
-        return response()->json(['data' => $instructor], 200);
+        $instructor = Instructor::with(['categories','courses'])
+            ->findOrFail($id);
+        $enrolledCount = 0;
+        $completedCount = 0;
+
+        foreach ($instructor->courses as $course) {
+            $enrolledCount  += $course->students()->where('status', 'enrolled')->count();
+            $completedCount += $course->students()->where('status', 'completed')->count();
+        }
+
+        return response()->json([
+            'data' => $instructor,
+            'students' => [
+                'enrolled'  => $enrolledCount,
+                'completed' => $completedCount,
+            ],
+        ], 200);
     }
 
     public function rate(Request $request, $id)
