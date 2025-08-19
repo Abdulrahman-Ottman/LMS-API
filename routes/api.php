@@ -1,4 +1,5 @@
 <?php
+use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/lessons.php';
 require __DIR__.'/auth.php';
@@ -92,3 +93,6 @@ require __DIR__.'/videos.php';
 ////            Route::get('/', [LessonController::class, 'index']);       // Get all lessons in section (optional)
 ////        });
 //    });
+
+
+Route::middleware('auth:sanctum')->put('/profile', [\App\Http\Controllers\AuthController::class, 'update']);

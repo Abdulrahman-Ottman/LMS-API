@@ -12,6 +12,13 @@ class Student extends Model
       'user_id',
       'full_name'
     ];
+
+    protected $hidden = [
+        'created_at',
+        'updated_at',
+        'user_id',
+
+    ];
     public function categories() : BelongsToMany
     {
         return $this->belongsToMany(Category::class);

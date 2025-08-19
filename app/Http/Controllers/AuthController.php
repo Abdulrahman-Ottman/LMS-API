@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateProfileRequest;
 use App\Mail\VerificationCodeMail;
 use App\Models\Category;
 use App\Models\User;
@@ -289,4 +290,37 @@ class AuthController
         return response()->json(['message' => 'Password reset successfully']);
     }
 
+
+    public function update(UpdateProfileRequest $request)
+    {
+        $user = auth()->user();
+        // update base user data
+        $data = $request->only(['first_name', 'last_name', 'user_name']);
+        if ($request->filled('password')) {
+            $data['password'] = bcrypt($request->password);
+        }
+        if ($request->hasFile('avatar')) {
+            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
+        }
+        $user->update($data);
+
+        // update related student/instructor data
+        if ($user->role === 'student') {
+            $user->student->update([
+                'full_name' => $request->input('full_name', $user->student->full_name),
+            ]);
+        }
+
+        if ($user->role === 'instructor') {
+            $user->instructor->update([
+                'full_name' => $request->input('full_name', $user->instructor->full_name),
+                'bio'       => $request->input('bio', $user->instructor->bio),
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'user'    => $user->load('student', 'instructor'),
+        ]);
+    }
 }
