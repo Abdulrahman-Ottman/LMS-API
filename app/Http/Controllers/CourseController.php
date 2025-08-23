@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Course;
+use App\Models\Instructor;
 use App\Models\Section;
 use Illuminate\Http\Request;
 use App\Traits\FilterCourses;
@@ -49,7 +50,7 @@ $course = Course::with([
     public function getCourses(Request $request)
     {
         $coursesQuery = Course::select('id', 'title', 'description', 'price', 'level', 'instructor_id','views','image','created_at','rating','discount')
-            ->with(['instructor','categories:id,name']);
+            ->with(['instructor','categories:id,name'])->where('enabled',true);
         $this->filterCourses($request, $coursesQuery);
 
         $sortBy = $request->get('sort_by');
@@ -312,5 +313,25 @@ $course = Course::with([
         }
 
         return response()->json(['message' => 'Sections reordered successfully']);
+    }
+
+    public function disable(Course $course)
+    {
+        $course->update(['enabled' => false]);
+
+        return response()->json([
+            'message' => 'Course disabled successfully.',
+            'course'  => $course
+        ]);
+    }
+
+    public function disableAll(Instructor $instructor)
+    {
+        $updated = $instructor->courses()->update(['enabled' => false]);
+
+        return response()->json([
+            'message' => "All courses for instructor {$instructor->id} disabled successfully.",
+            'updated_count' => $updated
+        ]);
     }
 }
