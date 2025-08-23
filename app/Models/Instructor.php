@@ -16,9 +16,12 @@ class Instructor extends Model
         'bio',
         'rating'
     ];
-
+    protected $hidden = [
+        'user_id',
+        'created_at',
+        'updated_at'
+    ];
     protected $appends = ['avatar'];
-    protected $hidden = ['user'];
 
     public function getAvatarAttribute()
     {

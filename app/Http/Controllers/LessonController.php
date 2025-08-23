@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\SectionDurationUpdated;
 use App\Models\CourseStudent;
 use App\Models\Lesson;
 use App\Models\LessonStudent;
@@ -12,6 +13,7 @@ use FFMpeg\FFMpeg;
 
 class LessonController extends Controller
 {
+
     public function store(Request $request, FFMpeg $ffmpeg)
     {
         $request->validate([
@@ -19,23 +21,64 @@ class LessonController extends Controller
             'section_id' => 'required|exists:sections,id',
             'video' => 'required|file|mimes:mp4,mov,ogg,webm|max:512000',
         ]);
-        if(Section::find($request->section_id)->course->instructor_id!=auth()->user()->instructor->id)
+
+        $section = Section::findOrFail($request->section_id);
+
+        // Check instructor authorization
+        if ($section->course->instructor_id != auth()->user()->instructor->id) {
             return response()->json(['message' => 'Unauthorized'], 401);
-        $order = Lesson::where('section_id', $request->section_id)->max('order') + 1;
+        }
+
+        $order = Lesson::where('section_id', $section->id)->max('order') + 1;
+
         $path = $request->file('video')->store('videos');
         $filename = basename($path);
+
         $video = $ffmpeg->open(storage_path('app/private/' . $path));
-        $duration = (int)$video->getFormat()->get('duration');
+        $duration = (int) $video->getFormat()->get('duration');
 
         $lesson = Lesson::create([
             'title' => $request->title,
-            'section_id' => $request->section_id,
+            'section_id' => $section->id,
             'duration' => $duration,
             'file_name' => $filename,
             'order' => $order,
         ]);
+
+        // update section total duration
+        $section->total_duration = $section->lessons()->sum('duration');
+        $section->save();
+
+        // fire event to update course duration
+        event(new SectionDurationUpdated($section));
+
         return response()->json($lesson, 201);
     }
+
+//    public function store(Request $request, FFMpeg $ffmpeg)
+//    {
+//        $request->validate([
+//            'title' => 'required|string',
+//            'section_id' => 'required|exists:sections,id',
+//            'video' => 'required|file|mimes:mp4,mov,ogg,webm|max:512000',
+//        ]);
+//        if(Section::find($request->section_id)->course->instructor_id!=auth()->user()->instructor->id)
+//            return response()->json(['message' => 'Unauthorized'], 401);
+//        $order = Lesson::where('section_id', $request->section_id)->max('order') + 1;
+//        $path = $request->file('video')->store('videos');
+//        $filename = basename($path);
+//        $video = $ffmpeg->open(storage_path('app/private/' . $path));
+//        $duration = (int)$video->getFormat()->get('duration');
+//
+//        $lesson = Lesson::create([
+//            'title' => $request->title,
+//            'section_id' => $request->section_id,
+//            'duration' => $duration,
+//            'file_name' => $filename,
+//            'order' => $order,
+//        ]);
+//        return response()->json($lesson, 201);
+//    }
 
     public function show($id)
     {

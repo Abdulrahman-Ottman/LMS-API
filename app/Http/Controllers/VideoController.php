@@ -10,21 +10,53 @@ use Illuminate\Support\Facades\Storage;
 
 class VideoController extends Controller
 {
+
     public function getVideoLink($filename)
     {
-      $student = auth()->user()->student;
-      $lesson = Lesson::where('file_name', $filename)->with('section.course')->first();
-      if(!$lesson){
-          return response()->json('Video not found', 404);
-      }
-      $courseId = $lesson->section->course->id;
-      $courseStudent = CourseStudent::where('student_id', $student->id)->where('course_id', $courseId)->first();
-      if(!$courseStudent){
-          return response()->json('You have no access to this course', 403);
-      }
-      if($courseStudent->status != 'enrolled' && $courseStudent->status != 'completed'){
-          return response()->json('You have no access to this course', 403);
-      }
+        $student = auth()->user()->student ?? null;
+        $lesson = Lesson::where('file_name', $filename)
+            ->with('section.course')
+            ->first();
+
+        if (!$lesson) {
+            return response()->json('Video not found', 404);
+        }
+
+        $section = $lesson->section;
+        $course  = $section->course;
+
+        // check if this lesson is in the first section of the course
+        $firstSection = $course->sections()->orderBy('order', 'asc')->first();
+
+        if ($firstSection && $section->id === $firstSection->id) {
+            // check if the lesson is the first or second in this section
+            $firstTwoLessons = $firstSection->lessons()->orderBy('order', 'asc')->take(2)->pluck('id')->toArray();
+
+            if (in_array($lesson->id, $firstTwoLessons)) {
+                return response()->json([
+                    'url' => URL::signedRoute('stream.video', [
+                        'filename' => $filename,
+                    ], now()->addHours(3))
+                ]);
+            }
+        }
+
+        // if not in the free preview lessons, check enrollment
+        if (!$student) {
+            return response()->json('You have no access to this course', 403);
+        }
+
+        $courseStudent = CourseStudent::where('student_id', $student->id)
+            ->where('course_id', $course->id)
+            ->first();
+
+        if (!$courseStudent) {
+            return response()->json('You have no access to this course', 403);
+        }
+
+        if ($courseStudent->status != 'enrolled' && $courseStudent->status != 'completed') {
+            return response()->json('You have no access to this course', 403);
+        }
 
         return response()->json([
             'url' => URL::signedRoute('stream.video', [
@@ -32,6 +64,28 @@ class VideoController extends Controller
             ], now()->addHours(3))
         ]);
     }
+//    public function getVideoLink($filename)
+//    {
+//      $student = auth()->user()->student;
+//      $lesson = Lesson::where('file_name', $filename)->with('section.course')->first();
+//      if(!$lesson){
+//          return response()->json('Video not found', 404);
+//      }
+//      $courseId = $lesson->section->course->id;
+//      $courseStudent = CourseStudent::where('student_id', $student->id)->where('course_id', $courseId)->first();
+//      if(!$courseStudent){
+//          return response()->json('You have no access to this course', 403);
+//      }
+//      if($courseStudent->status != 'enrolled' && $courseStudent->status != 'completed'){
+//          return response()->json('You have no access to this course', 403);
+//      }
+//
+//        return response()->json([
+//            'url' => URL::signedRoute('stream.video', [
+//                'filename' => $filename,
+//            ], now()->addHours(3))
+//        ]);
+//    }
     public function streamVideo(Request $request, $filename)
     {
         if (!$request->hasValidSignature()) {

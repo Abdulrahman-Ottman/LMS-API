@@ -33,7 +33,7 @@ $course = Course::with([
             ->first();
         unset($course->students);
 
-        
+
     $sectionCount = $course->sections->count();
     $lessonCount = $course->sections->flatMap->lessons->count();
     $totalDuration = $course->sections->flatMap->lessons->sum('duration');
@@ -291,7 +291,7 @@ $course = Course::with([
     {
         $course = Course::with('sections')->findOrFail($courseId);
         if (auth()->user()->id !== $course->instructor->user_id) {
-            return response()->json( ['messsage' => 'Unauthorized'], 403);
+            return response()->json( ['message' => 'Unauthorized'], 403);
         }
 
         $request->validate([
