@@ -116,4 +116,13 @@ class StudentController extends Controller
             'courses' => $courses
         ]);
     }
+
+    public function getStudentCategories(){
+        $student = auth()->user()->student;
+        $categories = $student->categories;
+        return response()->json([
+            'categories' => $categories,
+        ]);
+    }
+
 }

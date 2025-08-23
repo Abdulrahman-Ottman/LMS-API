@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -294,6 +295,25 @@ class AuthController
     public function update(UpdateProfileRequest $request)
     {
         $user = auth()->user();
+
+        // handle password change
+        if ($request->filled('password')) {
+            if (!$request->filled('old_password')) {
+                return response()->json([
+                    'message' => 'Old password is required to set a new password.'
+                ], 422);
+            }
+
+            if (!Hash::check($request->old_password, $user->password)) {
+                return response()->json([
+                    'message' => 'The old password you entered is incorrect.'
+                ], 422);
+            }
+
+            $user->password = bcrypt($request->password);
+        }
+
+
         // update base user data
         $data = $request->only(['first_name', 'last_name', 'user_name']);
         if ($request->filled('password')) {
