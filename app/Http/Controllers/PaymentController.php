@@ -104,6 +104,16 @@ class PaymentController extends Controller
             ],
             ['status' => 'enrolled']
         );
+
+        $course = Course::findOrFail($metadataCourseId);
+        $instructor = $course->instructor;
+
+        if ($instructor) {
+            $amount = $paymentIntent->amount_received / 100; // Stripe returns cents
+            $instructor->increment('current_balance', $amount);
+            $instructor->increment('total_balance', $amount);
+        }
+        
         return response()->json(['message' => 'Payment successful.']);
     }
 }

@@ -139,4 +139,25 @@ class InstructorController extends Controller
             'instructor' => $instructor,
         ]);
     }
+
+
+    public function enable(Instructor $instructor)
+    {
+        $instructor->update(['enabled' => true]);
+
+        return response()->json([
+            'message' => 'Instructor enabled successfully.',
+            'instructor' => $instructor
+        ]);
+    }
+
+    public function disable(Instructor $instructor)
+    {
+        $instructor->update(['enabled' => false]);
+
+        return response()->json([
+            'message' => 'Instructor disabled successfully.',
+            'instructor' => $instructor
+        ]);
+    }
 }
