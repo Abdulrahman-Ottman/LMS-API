@@ -1,4 +1,6 @@
 <?php
+
+use App\Http\Controllers\CourseController;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/lessons.php';
@@ -97,3 +99,8 @@ require __DIR__.'/admin.php';
 
 
 Route::middleware('auth:sanctum')->put('/profile', [\App\Http\Controllers\AuthController::class, 'update']);
+
+Route::middleware(['auth:sanctum' , 'role:admin'])->group(function () {
+    Route::post('/courses/{course}/disable', [CourseController::class, 'disable']);
+    Route::post('/instructor/{instructor}/courses/disable', [CourseController::class, 'disableAll']);
+});
