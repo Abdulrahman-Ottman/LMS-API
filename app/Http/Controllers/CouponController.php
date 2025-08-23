@@ -63,4 +63,44 @@ class CouponController extends Controller
             'discount_percentage' => $coupon->value
         ]);
     }
+
+    public function enable(Coupon $coupon)
+    {
+        $coupon->update(['is_active' => true]);
+
+        return response()->json([
+            'message' => 'Coupon enabled successfully.',
+            'coupon'  => $coupon,
+        ]);
+    }
+
+    public function disable(Coupon $coupon)
+    {
+        $coupon->update(['is_active' => false]);
+
+        return response()->json([
+            'message' => 'Coupon disabled successfully.',
+            'coupon'  => $coupon,
+        ]);
+    }
+
+    public function getInstructorCoupons()
+    {
+        $user = auth()->user();
+
+        if (!$user->isInstructor() && !$user->isAdmin()) {
+            return response()->json([
+                'message' => 'Only instructors and admins can view coupons.'
+            ], 403);
+        }
+
+        $coupons = Coupon::where('instructor_id', $user->instructor->id)
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'code', 'value', 'expires_at', 'is_active']);
+
+        return response()->json([
+            'message' => 'Coupons retrieved successfully.',
+            'coupons' => $coupons,
+        ]);
+    }
 }
