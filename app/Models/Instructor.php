@@ -14,7 +14,8 @@ class Instructor extends Model
         'full_name',
         'views',
         'bio',
-        'rating'
+        'rating',
+        'cv_path'
     ];
     protected $hidden = [
         'user_id',

@@ -13,6 +13,7 @@ require __DIR__.'/search.php';
 require __DIR__.'/coupon.php';
 require __DIR__.'/payments.php';
 require __DIR__.'/videos.php';
+require __DIR__.'/admin.php';
 
 // Authenticated routes
 //Route::middleware(['auth:sanctum'])->group(function () {

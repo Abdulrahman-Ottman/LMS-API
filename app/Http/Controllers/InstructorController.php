@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Instructor;
 use App\Models\InstructorRating;
 use App\Models\InstructorCategory;
+use Illuminate\Support\Facades\Storage;
 
 class InstructorController extends Controller
 {
@@ -96,5 +97,46 @@ class InstructorController extends Controller
             'message'           => 'View recorded successfully',
             'instructor_views'  => $instructor->views,
         ], 200);
+    }
+
+
+    public function uploadCv(Request $request)
+    {
+        $request->validate([
+            'cv' => 'required|mimes:pdf,doc,docx|max:5120', // allow pdf/doc/docx
+        ]);
+
+        $instructor = auth()->user()->instructor;
+
+        if (!$instructor) {
+            return response()->json([
+                'message' => 'Only instructors can upload CVs'
+            ], 403);
+        }
+
+        // block if already verified
+        if ($instructor->verified) {
+            return response()->json([
+                'message' => 'Your account is already verified. You cannot upload a new CV.'
+            ], 403);
+        }
+
+        // delete old CV if exists
+        if ($instructor->cv_path && Storage::disk('public')->exists($instructor->cv_path)) {
+            Storage::disk('public')->delete($instructor->cv_path);
+        }
+
+        // store new CV
+        $path = $request->file('cv')->store('cvs', 'public');
+
+        $instructor->update([
+            'cv_path' => $path,
+            'verified' => false, // stays false until admin approves
+        ]);
+
+        return response()->json([
+            'message'    => 'CV uploaded successfully, pending verification.',
+            'instructor' => $instructor,
+        ]);
     }
 }
