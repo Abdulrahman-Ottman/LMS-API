@@ -15,7 +15,10 @@ class Instructor extends Model
         'views',
         'bio',
         'rating',
-        'cv_path'
+        'cv_path',
+        'enabled',
+        'current_balance',
+        'total_balance'
     ];
     protected $hidden = [
         'user_id',
@@ -24,6 +27,12 @@ class Instructor extends Model
     ];
     protected $appends = ['avatar'];
 
+
+    protected $casts = [
+        'enabled' => 'boolean',
+        'current_balance' => 'decimal:2',
+        'total_balance' => 'decimal:2',
+    ];
     public function getAvatarAttribute()
     {
         return $this->user ? asset($this->user->avatar) : null;
