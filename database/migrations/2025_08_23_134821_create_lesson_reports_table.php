@@ -12,9 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('lesson_reports', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
+                $table->id();
+                $table->foreignId('student_id')->constrained()->onDelete('cascade');
+                $table->foreignId('lesson_id')->constrained()->onDelete('cascade');
+                $table->text('message');
+                $table->enum('status', ['pending', 'reviewed'])->default('pending');
+                $table->timestamps();
+
+                $table->unique(['student_id', 'lesson_id']);
+            });
     }
 
     /**

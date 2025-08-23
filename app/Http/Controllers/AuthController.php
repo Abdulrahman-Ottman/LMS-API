@@ -296,7 +296,6 @@ class AuthController
     {
         $user = auth()->user();
 
-        // handle password change
         if ($request->filled('password')) {
             if (!$request->filled('old_password')) {
                 return response()->json([
