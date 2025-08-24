@@ -26,7 +26,7 @@ class StudentController extends Controller
 
         $student = $user->student;
 
-        $student->categories()->sync($request->category_ids);
+        $student->categories()->syncWithoutDetaching($request->category_ids);
 
         $subCategories = Category::whereIn('parent_id', $request->category_ids)->get();
 
@@ -122,6 +122,25 @@ class StudentController extends Controller
         $categories = $student->categories;
         return response()->json([
             'categories' => $categories,
+        ]);
+    }
+
+    public function addToWishlist(Request $request, Course $course)
+    {
+        $student = auth()->user()->student;
+
+        if (!$student) {
+            return response()->json([
+                'message' => 'Only students can add courses to wishlist.'
+            ], 403);
+        }
+        $student->courses()->syncWithoutDetaching([
+            $course->id => ['status' => 'wishlist']
+        ]);
+
+        return response()->json([
+            'message' => 'Course added to wishlist successfully.',
+            'course'  => $course,
         ]);
     }
 

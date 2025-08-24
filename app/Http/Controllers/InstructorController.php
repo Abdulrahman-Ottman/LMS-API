@@ -160,4 +160,40 @@ class InstructorController extends Controller
             'instructor' => $instructor
         ]);
     }
+
+
+    public function acceptCv(Instructor $instructor)
+    {
+        if (!$instructor->cv_path) {
+            return response()->json([
+                'message' => 'No CV found to accept.'
+            ], 400);
+        }
+
+        $instructor->update([
+            'verified' => true,
+        ]);
+
+        return response()->json([
+            'message'    => 'Instructor CV has been accepted and account verified.',
+            'instructor' => $instructor,
+        ]);
+    }
+
+    public function rejectCv(Instructor $instructor)
+    {
+        if ($instructor->cv_path && Storage::disk('public')->exists($instructor->cv_path)) {
+            Storage::disk('public')->delete($instructor->cv_path);
+        }
+
+        $instructor->update([
+            'cv_path'  => null,
+            'verified' => false,
+        ]);
+
+        return response()->json([
+            'message'    => 'Instructor CV has been rejected and deleted.',
+            'instructor' => $instructor,
+        ]);
+    }
 }

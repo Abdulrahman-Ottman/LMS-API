@@ -12,4 +12,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
     Route::post('/instructors/{instructor}/enable', [InstructorController::class, 'enable']);
     Route::post('/instructors/{instructor}/disable', [InstructorController::class, 'disable']);
+
+    Route::post('/instructors/{instructor}/accept-cv', [InstructorController::class, 'acceptCv']);
+    Route::post('/instructors/{instructor}/reject-cv', [InstructorController::class, 'rejectCv']);
 });
