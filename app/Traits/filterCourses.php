@@ -60,6 +60,15 @@ trait filterCourses
                 $coursesQuery->where('rating', '>=', $minRating);
             }
         }
+        if ($status = $request->get('enabled_status')) {
+            if ($coursesQuery && in_array($status, ['enabled', 'disabled', 'all'])) {
+                if ($status === 'enabled') {
+                    $coursesQuery->where('enabled', true);
+                } elseif ($status === 'disabled') {
+                    $coursesQuery->where('enabled', false);
+                }
+            }
+        }
         return $coursesQuery;
     }
 }

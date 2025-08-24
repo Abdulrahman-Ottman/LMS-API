@@ -50,7 +50,7 @@ $course = Course::with([
     public function getCourses(Request $request)
     {
         $coursesQuery = Course::select('id', 'title', 'description', 'price', 'level', 'instructor_id','views','image','created_at','rating','discount')
-            ->with(['instructor','categories:id,name'])->where('enabled',true);
+            ->with(['instructor','categories:id,name']);
         $this->filterCourses($request, $coursesQuery);
 
         $sortBy = $request->get('sort_by');
@@ -75,16 +75,7 @@ $course = Course::with([
             return $course;
         });
 
-        return response()->json([
-            'current_page' => $courses->currentPage(),
-            'data' => $courses,
-            'links' => [
-                'previous' => $courses->previousPageUrl(),
-                'next' => $courses->nextPageUrl(),
-            ],
-            'per_page' => $courses->perPage(),
-            'total' => $courses->total(),
-        ]);
+        return response()->json($courses);
     }
 
     public function store(Request $request)
