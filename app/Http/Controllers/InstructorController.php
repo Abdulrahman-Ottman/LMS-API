@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Instructor;
 use App\Models\InstructorRating;
-use App\Models\InstructorCategory;
 use Illuminate\Support\Facades\Storage;
+use App\Services\FcmService;
 
 class InstructorController extends Controller
 {
+
+
     public function getInstructors(Request $request)
     {
         $instructorsQuery = Instructor::query()->with('categories');
@@ -162,7 +164,7 @@ class InstructorController extends Controller
     }
 
 
-    public function acceptCv(Instructor $instructor)
+    public function acceptCv(Instructor $instructor , FcmService $fcm)
     {
         if (!$instructor->cv_path) {
             return response()->json([
@@ -173,6 +175,13 @@ class InstructorController extends Controller
         $instructor->update([
             'verified' => true,
         ]);
+
+        $fcm->sendToUser(
+            user: $instructor->user,
+            title: 'CV Verified 🎉',
+            body:  'Your instructor account has been verified.',
+            data:  ['type' => 'instructor_verification', 'instructor_id' => (string)$instructor->id]
+        );
 
         return response()->json([
             'message'    => 'Instructor CV has been accepted and account verified.',

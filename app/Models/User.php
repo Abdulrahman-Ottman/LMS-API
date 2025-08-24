@@ -90,4 +90,9 @@ class User extends Authenticatable
         return $this->hasOne(Instructor::class);
     }
 
+    public function fcmTokens()
+    {
+        return $this->hasMany(\App\Models\FcmToken::class);
+    }
+
 }
