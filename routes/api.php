@@ -1,7 +1,11 @@
 <?php
 
+use App\Http\Controllers\LessonReportController;
 use Illuminate\Support\Facades\Route;
 
+
+
+require __DIR__.'/reports.php';
 require __DIR__.'/lessons.php';
 require __DIR__.'/auth.php';
 require __DIR__.'/students.php';
