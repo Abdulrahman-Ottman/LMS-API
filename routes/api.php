@@ -1,4 +1,4 @@
-<?php
+\<?php
 
 use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\LessonReportController;
