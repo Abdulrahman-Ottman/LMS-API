@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\LessonReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -102,3 +103,8 @@ require __DIR__.'/admin.php';
 
 
 Route::middleware('auth:sanctum')->put('/profile', [\App\Http\Controllers\AuthController::class, 'update']);
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::post('/me/devices', [DeviceTokenController::class, 'store']);      // register or update
+    Route::delete('/me/devices/{token}', [DeviceTokenController::class, 'destroy']); // remove by token
+    Route::post('/me/notifications/test', [DeviceTokenController::class, 'sendTest']); // optional helper
+});
