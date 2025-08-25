@@ -56,7 +56,7 @@ class PaymentController extends Controller
         }
         try {
             $intent = PaymentIntent::create([
-                'amount' => (int)$price,
+                'amount' => (int) round($price * 100),
                 'currency' => 'usd',
                 'payment_method_types' => ['card'],
                 'metadata' => [
