@@ -15,4 +15,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
     Route::post('/instructors/{instructor}/accept-cv', [InstructorController::class, 'acceptCv']);
     Route::post('/instructors/{instructor}/reject-cv', [InstructorController::class, 'rejectCv']);
+    Route::get('/dashboard/admin', [AdminController::class, 'adminDashboard']);
+
 });

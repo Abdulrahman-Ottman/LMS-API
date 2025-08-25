@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CourseStudent;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use App\Models\Instructor;
 use App\Models\InstructorRating;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Services\FcmService;
 
@@ -203,6 +206,68 @@ class InstructorController extends Controller
         return response()->json([
             'message'    => 'Instructor CV has been rejected and deleted.',
             'instructor' => $instructor,
+        ]);
+    }
+
+
+
+    public function instructorDashboard()
+    {
+        $instructor = auth()->user()->instructor;
+
+        // Revenue (only this instructor's courses)
+        $totalRevenue = Payment::whereHas('course', function ($q) use ($instructor) {
+            $q->where('instructor_id', $instructor->id);
+        })->sum('amount');
+
+        // Students enrolled in this instructor’s courses
+        $totalStudents = CourseStudent::whereHas('course', function ($q) use ($instructor) {
+            $q->where('instructor_id', $instructor->id);
+        })->distinct('student_id')->count('student_id');
+
+        // Total courses
+        $totalCourses = $instructor->courses()->count();
+
+        // Instructor rating
+        $yourRating = $instructor->rating; // from instructors table
+
+        // Courses rating (average rating of all course_student ratings for this instructor)
+        $coursesRating = CourseStudent::whereHas('course', function ($q) use ($instructor) {
+            $q->where('instructor_id', $instructor->id);
+        })->avg('rating');
+
+        $topCourses = Payment::select(
+            'course_id',
+            DB::raw('SUM(amount) as revenue')
+        )
+            ->whereHas('course', function ($q) use ($instructor) {
+                $q->where('instructor_id', $instructor->id);
+            })
+            ->groupBy('course_id')
+            ->orderByDesc('revenue')
+            ->take(5)
+            ->with('course:id,title')
+            ->get()
+            ->map(function ($p) {
+                $avgRating = CourseStudent::where('course_id', $p->course_id)->avg('rating');
+                return [
+                    'name' => $p->course->title,
+                    'revenue' => $p->revenue,
+                    'avg_rating' => round($avgRating, 2),
+                ];
+            });
+
+        // Example chart data array (same as admin for now)
+        $data = [650, 590, 800, 810, 560, 1050, 1200];
+
+        return response()->json([
+            'totalRevenue' => $totalRevenue,
+            'totalStudents' => $totalStudents,
+            'totalCourses' => $totalCourses,
+            'yourRating' => $yourRating,
+            'coursesRating' => round($coursesRating, 2),
+            'topCourses' => $topCourses,
+            'data' => $data,
         ]);
     }
 }

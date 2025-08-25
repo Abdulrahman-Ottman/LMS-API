@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\Instructor;
+use App\Models\Payment;
+use App\Models\Student;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -18,6 +22,40 @@ class AdminController extends Controller
         return response()->json([
             'message'     => 'Pending CVs retrieved successfully.',
             'instructors' => $instructors,
+        ]);
+    }
+
+    public function adminDashboard()
+    {
+        $totalRevenue = Payment::sum('amount'); // total payments
+        $totalStudents = Student::count();
+        $totalCourses = Course::count();
+        $totalInstructors = Instructor::count();
+
+        // Top performing courses by revenue
+        $topCourses = Payment::select('course_id', DB::raw('SUM(amount) as revenue'))
+            ->groupBy('course_id')
+            ->orderByDesc('revenue')
+            ->take(5)
+            ->with(['course:id,title,instructor_id', 'course.instructor:id,full_name'])
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'name' => $p->course->title,
+                    'revenue' => $p->revenue,
+                    'instructor' => $p->course->instructor->full_name ?? null,
+                ];
+            });
+
+        $data = [650, 590, 800, 810, 560, 1050, 1200];
+
+        return response()->json([
+            'totalRevenue' => $totalRevenue,
+            'totalStudents' => $totalStudents,
+            'totalCourses' => $totalCourses,
+            'totalInstructors' => $totalInstructors,
+            'topCourses' => $topCourses,
+            'data' => $data,
         ]);
     }
 }
