@@ -105,7 +105,7 @@ class InstructorController extends Controller
     }
 
 
-    public function uploadCv(Request $request)
+    public function uploadCv(Request $request, FcmService $fcm)
     {
         $request->validate([
             'cv' => 'required|mimes:pdf,doc,docx|max:5120', // allow pdf/doc/docx
@@ -139,11 +139,23 @@ class InstructorController extends Controller
             'verified' => false, // stays false until admin approves
         ]);
 
+        // ✅ Send notification to the user
+        $fcm->sendToUser(
+            user: $instructor->user,
+            title: 'CV Uploaded 📄',
+            body: 'Your CV has been uploaded successfully and is pending verification.',
+            data: [
+                'type' => 'cv_uploaded',
+                'instructor_id' => (string) $instructor->id
+            ]
+        );
+
         return response()->json([
             'message'    => 'CV uploaded successfully, pending verification.',
             'instructor' => $instructor,
         ]);
     }
+
 
 
     public function enable(Instructor $instructor)
@@ -192,7 +204,7 @@ class InstructorController extends Controller
         ]);
     }
 
-    public function rejectCv(Instructor $instructor)
+    public function rejectCv(Instructor $instructor, FcmService $fcm)
     {
         if ($instructor->cv_path && Storage::disk('public')->exists($instructor->cv_path)) {
             Storage::disk('public')->delete($instructor->cv_path);
@@ -202,6 +214,17 @@ class InstructorController extends Controller
             'cv_path'  => null,
             'verified' => false,
         ]);
+
+        // ✅ Send notification to the user
+        $fcm->sendToUser(
+            user: $instructor->user,
+            title: 'CV Rejected ❌',
+            body: 'Your CV has been rejected. Please upload a new one for verification.',
+            data: [
+                'type' => 'cv_rejected',
+                'instructor_id' => (string) $instructor->id
+            ]
+        );
 
         return response()->json([
             'message'    => 'Instructor CV has been rejected and deleted.',

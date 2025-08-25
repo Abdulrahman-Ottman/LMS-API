@@ -209,7 +209,7 @@ class AuthController
     }
 
 
-    public function changePassword(Request $request)
+    public function changePassword(Request $request, FcmService $fcm)
     {
         $validator = Validator::make($request->all(), [
             'current_password' => 'required',
@@ -229,8 +229,19 @@ class AuthController
         $user->password = bcrypt($request->new_password);
         $user->save();
 
+        // ✅ Notify user
+        $fcm->sendToUser(
+            user: $user,
+            title: 'Password Changed 🔒',
+            body: 'Your account password has been changed successfully.',
+            data: [
+                'type' => 'password_changed'
+            ]
+        );
+
         return response()->json(['message' => 'Password changed successfully']);
     }
+
 
     public function logout(Request $request)
     {
@@ -260,7 +271,7 @@ class AuthController
         return response()->json(['message' => 'Reset code sent to your email.']);
     }
 
-    public function resetPassword(Request $request)
+    public function resetPassword(Request $request, FcmService $fcm)
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
@@ -288,11 +299,22 @@ class AuthController
 
         Cache::forget('reset_' . $request->email);
 
+        // ✅ Notify user
+        $fcm->sendToUser(
+            user: $user,
+            title: 'Password Reset 🔑',
+            body: 'Your password has been reset successfully.',
+            data: [
+                'type' => 'password_reset'
+            ]
+        );
+
         return response()->json(['message' => 'Password reset successfully']);
     }
 
 
-    public function update(UpdateProfileRequest $request)
+
+    public function update(UpdateProfileRequest $request, FcmService $fcm)
     {
         $user = auth()->user();
 
@@ -311,7 +333,6 @@ class AuthController
 
             $user->password = bcrypt($request->password);
         }
-
 
         // update base user data
         $data = $request->only(['first_name', 'last_name', 'user_name']);
@@ -337,9 +358,20 @@ class AuthController
             ]);
         }
 
+        // ✅ Notify user
+        $fcm->sendToUser(
+            user: $user,
+            title: 'Profile Updated ✨',
+            body: 'Your profile information has been updated successfully.',
+            data: [
+                'type' => 'profile_updated'
+            ]
+        );
+
         return response()->json([
             'message' => 'Profile updated successfully',
             'user'    => $user->load('student', 'instructor'),
         ]);
     }
+
 }

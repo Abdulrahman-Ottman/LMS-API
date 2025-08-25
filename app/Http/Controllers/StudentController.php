@@ -125,7 +125,7 @@ class StudentController extends Controller
         ]);
     }
 
-    public function addToWishlist(Request $request, Course $course)
+    public function addToWishlist(Request $request, Course $course, FcmService $fcm)
     {
         $student = auth()->user()->student;
 
@@ -134,14 +134,27 @@ class StudentController extends Controller
                 'message' => 'Only students can add courses to wishlist.'
             ], 403);
         }
+
         $student->courses()->syncWithoutDetaching([
             $course->id => ['status' => 'wishlist']
         ]);
+
+        // ✅ Send notification to the student
+        $fcm->sendToUser(
+            user: $student->user,
+            title: 'Course Added to Wishlist 💖',
+            body: 'You have successfully added "' . $course->title . '" to your wishlist.',
+            data: [
+                'type' => 'course_wishlist',
+                'course_id' => (string) $course->id
+            ]
+        );
 
         return response()->json([
             'message' => 'Course added to wishlist successfully.',
             'course'  => $course,
         ]);
     }
+
 
 }
