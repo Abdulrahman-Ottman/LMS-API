@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
@@ -113,7 +114,15 @@ class PaymentController extends Controller
             $instructor->increment('current_balance', $amount);
             $instructor->increment('total_balance', $amount);
         }
-        
+
+        Payment::create([
+            'payment_id' => $paymentIntent->id,
+            'student_id' => $student->id,
+            'course_id' => $metadataCourseId,
+            'amount'    => $amount,
+            'status'    => $paymentIntent->status,
+        ]);
+
         return response()->json(['message' => 'Payment successful.']);
     }
 }
