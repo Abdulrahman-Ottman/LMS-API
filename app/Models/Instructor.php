@@ -18,7 +18,8 @@ class Instructor extends Model
         'cv_path',
         'enabled',
         'current_balance',
-        'total_balance'
+        'total_balance',
+        'stripe_account_id'
     ];
     protected $hidden = [
         'user_id',

@@ -3,12 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Models\Payout;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Stripe\Stripe;
+use Stripe\Account;
+use Stripe\AccountLink;
 use Stripe\PaymentIntent;
 use App\Models\Course;
 use App\Models\Coupon;
 use App\Models\CourseStudent;
+use Stripe\Transfer;
 
 class PaymentController extends Controller
 {
@@ -125,4 +131,81 @@ class PaymentController extends Controller
 
         return response()->json(['message' => 'Payment successful.']);
     }
+
+
+
+
+    public function requestPayout(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',      // in dollars
+            'note'   => 'nullable|string|max:255',
+        ]);
+
+        $instructor = $request->user()->instructor;
+        $amount     = (float)$request->input('amount');
+
+        if (!$instructor || !$instructor->stripe_account_id) {
+            return response()->json(['error' => 'Instructor Stripe account missing'], 422);
+        }
+
+
+        if ($amount > $instructor->current_balance) {
+            return response()->json(['error' => 'Insufficient balance'], 422);
+        }
+
+        // Optional: enforce minimum payout amount, e.g. $10
+        if ($amount < 10) {
+            return response()->json(['error' => 'Minimum payout is $10'], 422);
+        }
+
+        Stripe::setApiKey(config('services.stripe.secret'));
+
+        $idempotencyKey = 'payout_'.Str::uuid()->toString();
+
+        try {
+            $transfer = null;
+
+            DB::transaction(function () use ($instructor, $amount, $idempotencyKey, &$transfer, $request) {
+                // 1) Create transfer to connected account (amount in cents)
+                $transfer = Transfer::create(
+                    [
+                        'amount'      => (int)round($amount * 100),
+                        'currency'    => 'usd',
+                        'destination' => $instructor->stripe_account_id,
+                        'description' => 'Instructor payout',
+                        'metadata'    => [
+                            'instructor_id' => $instructor->id,
+                            'note' => (string)($request->input('note') ?? ''),
+                        ],
+                    ],
+                    [
+                        'idempotency_key' => $idempotencyKey, // protects against double charge
+                    ]
+                );
+
+                // 2) Deduct from local balance
+                $instructor->decrement('current_balance', $amount);
+
+                // 3) Log payout
+                Payout::create([
+                    'instructor_id'     => $instructor->id,
+                    'amount'            => $amount,
+                    'status'            => 'paid',
+                    'stripe_transfer_id'=> $transfer->id,
+                    'idempotency_key'   => $idempotencyKey,
+                ]);
+            });
+
+            return response()->json([
+                'message'      => 'Payout successful',
+                'transfer_id'  => $transfer->id,
+                'amount'       => $amount,
+                'currency'     => 'usd',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
 }
