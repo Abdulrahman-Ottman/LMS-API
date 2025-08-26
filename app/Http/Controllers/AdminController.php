@@ -57,7 +57,7 @@ class AdminController extends Controller
 
             $data[] = $monthlySales;
         }
-        
+
         return response()->json([
             'totalRevenue' => $totalRevenue,
             'totalStudents' => $totalStudents,
