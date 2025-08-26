@@ -34,5 +34,8 @@ class Student extends Model
             ->withPivot('status')
             ->withTimestamps();
     }
-
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
+    }
 }
