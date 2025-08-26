@@ -140,6 +140,13 @@ class LessonController extends Controller
             $dataToUpdate['duration']  = (int)$video->getFormat()->get('duration');
         }
         $lesson->update($dataToUpdate);
+
+        $section = $lesson->section;
+        $section->total_duration = $section->lessons()->sum('duration');
+        $section->save();
+
+        event(new SectionDurationUpdated($section));
+
         return response()->json($lesson);
     }
 
@@ -161,7 +168,15 @@ class LessonController extends Controller
                 }
             }
         }
+
+        $section = $lesson->section;
         $lesson->delete();
+
+        $section->total_duration = $section->lessons()->sum('duration');
+        $section->save();
+
+        event(new SectionDurationUpdated($section));
+
         return response()->json(['message' => 'Lesson deleted']);
     }
 
