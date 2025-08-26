@@ -17,4 +17,9 @@ class Lesson extends Model
     {
         return $this->belongsToMany(Student::class);
     }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
+    }
 }
