@@ -257,9 +257,19 @@ class InstructorController extends Controller
                 ];
             });
 
-        // Example chart data array (same as admin for now)
-        $data = [650, 590, 800, 810, 560, 1050, 1200];
+        $data = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $monthStart = now()->subMonths($i)->startOfMonth();
+            $monthEnd   = now()->subMonths($i)->endOfMonth();
 
+            $monthlySales = Payment::whereHas('course', function ($q) use ($instructor) {
+                $q->where('instructor_id', $instructor->id);
+            })
+                ->whereBetween('created_at', [$monthStart, $monthEnd])
+                ->sum('amount');
+
+            $data[] = $monthlySales;
+        }
         return response()->json([
             'totalRevenue' => $totalRevenue,
             'totalStudents' => $totalStudents,
