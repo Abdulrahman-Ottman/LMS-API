@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\SectionDurationUpdated;
 use App\Models\Course;
 use App\Models\Section;
 use App\Models\Lesson;
@@ -91,7 +92,10 @@ class SectionController extends Controller
                 }
             }
         }
+
         $section->delete();
+
+        event(new SectionDurationUpdated($section));
 
         return response()->json(['message' => 'Section deleted successfully']);
     }
