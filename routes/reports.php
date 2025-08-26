@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 // admin views & manages reports
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/lesson-reports', [LessonReportController::class, 'getAllReports']);
-    Route::patch('/{id}/mark-reviewed', [LessonReportController::class, 'markAsReviewed']);
-    Route::patch('/mark-reviewed', [LessonReportController::class, 'markMultipleAsReviewed']);
+    Route::post('lesson-reports/{id}/mark-reviewed', [LessonReportController::class, 'markAsReviewed']);
+    Route::post('lesson-reports/mark-reviewed', [LessonReportController::class, 'markMultipleAsReviewed']);
 
 });
