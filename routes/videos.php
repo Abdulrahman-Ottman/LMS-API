@@ -4,7 +4,7 @@ use App\Http\Controllers\VideoController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->prefix('videos')->group(function () {
-    Route::middleware('role:student')->group(function () {
+    Route::middleware('role:student|admin')->group(function () {
         Route::get('{filename}/link', [VideoController::class, 'getVideoLink']);
 //        Route::get('stream/{filename}', [VideoController::class, 'streamVideo'])->name('stream.video');
     });

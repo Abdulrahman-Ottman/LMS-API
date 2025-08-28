@@ -6,4 +6,5 @@ use App\Http\Controllers\CategoryController;
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/categories/main', [CategoryController::class, 'getMainCategories']);
     Route::get('/categories/{id}/subcategories', [CategoryController::class, 'getSubCategories']);
+    Route::get('/categories', [CategoryController::class, 'getCategories']);
 });

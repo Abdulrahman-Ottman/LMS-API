@@ -13,8 +13,6 @@ use App\Services\FcmService;
 
 class InstructorController extends Controller
 {
-
-
     public function getInstructors(Request $request)
     {
         $instructorsQuery = Instructor::query()->with('categories');
@@ -113,12 +111,6 @@ class InstructorController extends Controller
 
         $instructor = auth()->user()->instructor;
 
-        if (!$instructor) {
-            return response()->json([
-                'message' => 'Only instructors can upload CVs'
-            ], 403);
-        }
-
         // block if already verified
         if ($instructor->verified) {
             return response()->json([
@@ -126,9 +118,10 @@ class InstructorController extends Controller
             ], 403);
         }
 
-        // delete old CV if exists
         if ($instructor->cv_path && Storage::disk('public')->exists($instructor->cv_path)) {
-            Storage::disk('public')->delete($instructor->cv_path);
+            return response()->json([
+                'message' => 'Your account is pending for admin review please be patient the process could take up to 48 hours.'
+            ], 400);
         }
 
         // store new CV
@@ -136,7 +129,6 @@ class InstructorController extends Controller
 
         $instructor->update([
             'cv_path' => $path,
-            'verified' => false, // stays false until admin approves
         ]);
 
         return response()->json([

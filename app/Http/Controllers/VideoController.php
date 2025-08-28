@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Storage;
 
 class VideoController extends Controller
 {
-
     public function getVideoLink($filename)
     {
         $student = auth()->user()->student ?? null;
@@ -41,22 +40,19 @@ class VideoController extends Controller
             }
         }
 
-        // if not in the free preview lessons, check enrollment
-        if (!$student) {
-            return response()->json('You have no access to this course', 403);
-        }
-
-        $courseStudent = CourseStudent::where('student_id', $student->id)
-            ->where('course_id', $course->id)
-            ->first();
-
-        if (!$courseStudent) {
-            return response()->json('You have no access to this course', 403);
-        }
-
-        if ($courseStudent->status != 'enrolled' && $courseStudent->status != 'completed') {
-            return response()->json('You have no access to this course', 403);
-        }
+        if($student) {
+            $courseStudent = CourseStudent::where('student_id', $student->id)
+                ->where('course_id', $course->id)
+                ->first();
+            if (!$courseStudent) {
+                return response()->json('You have no access to this course', 403);
+            }
+            if ($courseStudent->status != 'enrolled' && $courseStudent->status != 'completed') {
+                return response()->json('You have no access to this course', 403);
+            }
+        } else if (!$student && !auth()->user()->isAdmin()) {
+           return response()->json('You have no access to this course', 403);
+         }
 
         return response()->json([
             'url' => URL::signedRoute('stream.video', [

@@ -28,12 +28,13 @@ $course = Course::with([
         if (!$course) {
             return response()->json(['message' => 'Course not found.'], 404);
         }
-        $course->status = $course->students()
-            ->where('student_id', auth()->user()->student->id)
-            ->pluck('status')
-            ->first();
-        unset($course->students);
-
+        if( auth()->user()->isStudent()) {
+            $course->status = $course->students()
+                ->where('student_id', auth()->user()->student->id)
+                ->pluck('status')
+                ->first();
+            unset($course->students);
+        }
 
     $sectionCount = $course->sections->count();
     $lessonCount = $course->sections->flatMap->lessons->count();
@@ -49,7 +50,7 @@ $course = Course::with([
 
     public function getCourses(Request $request)
     {
-        $coursesQuery = Course::select('id', 'title', 'description', 'price', 'level', 'instructor_id','views','image','created_at','rating','discount')
+        $coursesQuery = Course::select('id', 'title', 'description', 'price', 'level', 'instructor_id','views','image','created_at','rating','discount', 'enabled')
             ->with(['instructor','categories:id,name']);
         $this->filterCourses($request, $coursesQuery);
 
@@ -58,6 +59,7 @@ $course = Course::with([
             $this->sortCourses($sortBy, $coursesQuery);
         }
 
+
         $courses = $coursesQuery->paginate(10);
         $courses->appends($request->query());
 
@@ -65,8 +67,8 @@ $course = Course::with([
         if ($courses->isEmpty()) {
             return response()->json(['message' => 'No courses available.'], 404);
         }
-
-        $courses->getCollection()->transform(function ($course) {
+        if(auth()->user()->isStudent()){
+            $courses->getCollection()->transform(function ($course) {
             $course->status = $course->students()
                 ->where('student_id', auth()->user()->student->id)
                 ->pluck('status')
@@ -74,8 +76,19 @@ $course = Course::with([
             unset($course->students);
             return $course;
         });
-
-        return response()->json($courses);
+}
+//        return response()->json([$courses[1]->enabled]);
+        return response()->json([
+            'current_page' => $courses->currentPage(),
+            'data' => $courses->items(),   // return just items, not paginator wrapper
+            'links' => [
+                'previous' => $courses->previousPageUrl(),
+                'next' => $courses->nextPageUrl(),
+            ],
+            'last_page' => $courses->lastPage(),
+            'per_page' => $courses->perPage(),
+            'total' => $courses->total(),
+        ]);
     }
 
     public function store(Request $request)
@@ -129,7 +142,8 @@ $course = Course::with([
                 }
             }
         }
-        return response()->json(['message' => 'Course added successfully!'], 201);
+        $course->load('categories');
+        return response()->json(['message' => 'Course added successfully!', 'course'=> $course], 201);
     }
 
     public function update(Request $request, $id)
@@ -189,50 +203,50 @@ $course = Course::with([
             }
         }
     }
-        return response()->json(['message' => 'Course updated successfully!']);
+        return response()->json(['message' => 'Course updated successfully!', 'course'=> $course]);
     }
 
-    public function destroy($id)
-    {
-        $course = Course::with('sections.lessons')->findOrFail($id);
-        if (($course->instructor_id != auth()->user()->instructor->id)&&!auth()->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized access.'], 403);
-        }
-        $instructor = $course->instructor;
-        $courseId = $course->id;
-
-         $unusedCategoriesIds = Category::whereHas('courses', function($query) use ($instructor, $courseId) {
-            $query->where('instructor_id', $instructor->id)
-                  ->where('courses.id', '!=', $courseId);
-        })
-        ->pluck('id');
-
-        $oldCategoriesIds = $course->categories->pluck('id');
-
-        $instructor->categories()->detach($oldCategoriesIds);
-        $instructor->categories()->attach($unusedCategoriesIds);
-
-
-        foreach ($course->sections as $section) {
-            foreach ($section->lessons as $lesson) {
-                $path = 'videos/' .$lesson->file_name;
-                if (Storage::disk('local')->exists($path)) {
-                    Storage::disk('local')->delete($path);
-                    $prefix = pathinfo($lesson->file_name, PATHINFO_FILENAME);
-                    $subtitleFiles = Storage::disk('local')->files('subtitles');
-                    foreach ($subtitleFiles as $file) {
-                        $filename = basename($file);
-                        if (strpos($filename, $prefix . '-') === 0 && substr($filename, -4) === '.vtt') {
-                            Storage::disk('local')->delete($file);
-                        }
-                    }
-                }
-            }
-        }
-        $course->delete();
-
-        return response()->json(['message' => 'Course deleted successfully.'], 200);
-    }
+//    public function destroy($id)
+//    {
+//        $course = Course::with('sections.lessons')->findOrFail($id);
+//        if (($course->instructor_id != auth()->user()->instructor->id)&&!auth()->user()->isAdmin()) {
+//            return response()->json(['message' => 'Unauthorized access.'], 403);
+//        }
+//        $instructor = $course->instructor;
+//        $courseId = $course->id;
+//
+//         $unusedCategoriesIds = Category::whereHas('courses', function($query) use ($instructor, $courseId) {
+//            $query->where('instructor_id', $instructor->id)
+//                  ->where('courses.id', '!=', $courseId);
+//        })
+//        ->pluck('id');
+//
+//        $oldCategoriesIds = $course->categories->pluck('id');
+//
+//        $instructor->categories()->detach($oldCategoriesIds);
+//        $instructor->categories()->attach($unusedCategoriesIds);
+//
+//
+//        foreach ($course->sections as $section) {
+//            foreach ($section->lessons as $lesson) {
+//                $path = 'videos/' .$lesson->file_name;
+//                if (Storage::disk('local')->exists($path)) {
+//                    Storage::disk('local')->delete($path);
+//                    $prefix = pathinfo($lesson->file_name, PATHINFO_FILENAME);
+//                    $subtitleFiles = Storage::disk('local')->files('subtitles');
+//                    foreach ($subtitleFiles as $file) {
+//                        $filename = basename($file);
+//                        if (strpos($filename, $prefix . '-') === 0 && substr($filename, -4) === '.vtt') {
+//                            Storage::disk('local')->delete($file);
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        $course->delete();
+//
+//        return response()->json(['message' => 'Course deleted successfully.'], 200);
+//    }
     public function addView($id)
     {
         $course = Course::findOrFail($id);
@@ -308,10 +322,22 @@ $course = Course::with([
 
     public function disable(Course $course)
     {
+        if(auth()->user()->isInstructor())
+            if(auth()->user()->instructor->id!=$course->instructor_id)
+                return response()->json([
+                    'message' => 'Unauthorized.',
+                ], 403);
         $course->update(['enabled' => false]);
-
         return response()->json([
             'message' => 'Course disabled successfully.',
+            'course'  => $course
+        ]);
+    }
+    public function enable(Course $course)
+    {
+        $course->update(['enabled' => true]);
+        return response()->json([
+            'message' => 'Course enabled successfully.',
             'course'  => $course
         ]);
     }
@@ -321,11 +347,17 @@ $course = Course::with([
         $updated = $instructor->courses()->update(['enabled' => false]);
 
         return response()->json([
-            'message' => "All courses for instructor {$instructor->id} disabled successfully.",
+            'message' => "All courses for instructor disabled successfully.",
             'updated_count' => $updated
         ]);
     }
+    public function enableAll(Instructor $instructor)
+    {
+        $updated = $instructor->courses()->update(['enabled' => true]);
 
-
-
+        return response()->json([
+            'message' => "All courses for instructor enabled successfully.",
+            'updated_count' => $updated
+        ]);
+    }
 }

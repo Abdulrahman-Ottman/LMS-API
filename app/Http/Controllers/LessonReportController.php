@@ -40,44 +40,30 @@ class LessonReportController extends Controller
     // admin fetches all reports
     public function getAllReports()
     {
-        $reports = LessonReport::with(['student.user', 'lesson'])->where('status','pending')->orderBy('created_at', 'desc')->get();
+        $reports = LessonReport::with(['student.user', 'lesson.section.course.instructor'])
+            ->orderBy('created_at', 'desc')->get();
 
+        $reports->each(function ($report) {
+            $report->course = $report->lesson->section->course;
+            });
+        $reports->each(function ($report) {
+            unset($report->lesson->section);
+        });
         return response()->json(['reports'=>$reports]);
     }
-
-    public function markAsReviewed($id)
+    public function markAsReviewed(LessonReport $report)
     {
-        $report = LessonReport::findOrFail($id);
-
         if ($report->status === 'reviewed') {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Report already reviewed.'
             ], 400);
         }
-
         $report->status = 'reviewed';
         $report->save();
-
         return response()->json([
             'message' => 'Report marked as reviewed successfully.',
             'data' => $report
-        ]);
-    }
-
-    public function markMultipleAsReviewed(Request $request)
-    {
-        $validated = $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'exists:lesson_reports,id'
-        ]);
-
-        LessonReport::whereIn('id', $validated['ids'])
-            ->where('status', 'pending')
-            ->update(['status' => 'reviewed']);
-
-        return response()->json([
-            'message' => 'Selected reports marked as reviewed.'
         ]);
     }
 }

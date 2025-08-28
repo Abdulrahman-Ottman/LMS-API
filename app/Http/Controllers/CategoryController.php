@@ -23,4 +23,11 @@ class CategoryController extends Controller
             'data' => $subCategories
         ], 200);
     }
+    public function getCategories()
+    {
+        $categories = Category::all();
+        return response()->json([
+            'data' => $categories
+        ], 200);
+    }
 }

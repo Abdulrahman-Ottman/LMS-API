@@ -104,36 +104,42 @@ class PaymentController extends Controller
             return response()->json(['error' => 'User mismatch'], 405);
         }
 
-        CourseStudent::updateOrCreate(
-            [
+        DB::beginTransaction();
+        try {
+            CourseStudent::updateOrCreate(
+                [
+                    'student_id' => $student->id,
+                    'course_id' => $metadataCourseId,
+                ],
+                ['status' => 'enrolled']
+            );
+
+            $course = Course::findOrFail($metadataCourseId);
+            $instructor = $course->instructor;
+
+            if ($instructor) {
+                $amount = $paymentIntent->amount_received / 100; // Stripe returns cents
+                $instructor->increment('current_balance', $amount*0.6);
+                $instructor->increment('total_balance', $amount*0.6);
+            }
+
+            Payment::create([
+                'payment_id' => $paymentIntent->id,
                 'student_id' => $student->id,
-                'course_id' => $metadataCourseId
-            ],
-            ['status' => 'enrolled']
-        );
+                'course_id' => $metadataCourseId,
+                'amount' => $amount,
+                'status' => $paymentIntent->status,
+            ]);
 
-        $course = Course::findOrFail($metadataCourseId);
-        $instructor = $course->instructor;
+            DB::commit();
 
-        if ($instructor) {
-            $amount = $paymentIntent->amount_received / 100; // Stripe returns cents
-            $instructor->increment('current_balance', $amount);
-            $instructor->increment('total_balance', $amount);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Database error: '.$e->getMessage()], 500);
         }
-
-        Payment::create([
-            'payment_id' => $paymentIntent->id,
-            'student_id' => $student->id,
-            'course_id' => $metadataCourseId,
-            'amount'    => $amount,
-            'status'    => $paymentIntent->status,
-        ]);
 
         return response()->json(['message' => 'Payment successful.']);
     }
-
-
-
 
     public function requestPayout(Request $request)
     {
@@ -145,16 +151,14 @@ class PaymentController extends Controller
         $instructor = $request->user()->instructor;
         $amount     = (float)$request->input('amount');
 
-        if (!$instructor || !$instructor->stripe_account_id) {
-            return response()->json(['error' => 'Instructor Stripe account missing'], 422);
+        if (!$instructor->stripe_account_id) {
+                return response()->json(['error' => 'Instructor Stripe account missing'], 422);
         }
-
 
         if ($amount > $instructor->current_balance) {
             return response()->json(['error' => 'Insufficient balance'], 422);
         }
 
-        // Optional: enforce minimum payout amount, e.g. $10
         if ($amount < 10) {
             return response()->json(['error' => 'Minimum payout is $10'], 422);
         }
@@ -207,5 +211,58 @@ class PaymentController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+//    public function startExpressOnboarding(Request $request)
+//    {
+//        $instructor = $request->user()->instructor;
+//
+//        Stripe::setApiKey(config('services.stripe.secret'));
+//
+//        if (!$instructor->stripe_account_id) {
+//            $account = Account::create([
+//                'type' => 'custom',       // or 'express'
+//                'country' => 'US',
+//                'business_type' => 'individual',
+//                'capabilities' => [
+//                    'card_payments' => ['requested' => true],
+//                    'transfers'     => ['requested' => true],
+//                ],
+//                'business_profile' => [
+//                    'mcc' => '8299',
+//                ],
+//                'tos_acceptance' => [
+//                    'date' => time(),
+//                    'ip'   => $request->ip(),
+//                ],
+//            ]);
+//
+//            Account::createExternalAccount(
+//                $account->id,
+//                ['external_account' => 'btok_us_verified']
+//            );
+//            $instructor->update(['stripe_account_id' => $account->id]);
+//        }
+//        $link = AccountLink::create([
+//            'account' => $instructor->stripe_account_id,
+//            'refresh_url' => config('app.url').'/connect/refresh',
+//            'return_url'  => config('app.url').'/instructor/payments',
+//            'type' => 'account_onboarding',
+//        ]);
+//
+//        return response()->json(['url' => $link->url]);
+//    }
+    public function getPayouts(Request $request){
 
+        $user = $request->user();
+        if($user->isInstructor()) {
+            $payouts = Payout::with('instructor')->where('instructor_id', $user->instructor->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+        } else{
+            $payouts = Payout::with('instructor')->orderBy('created_at', 'desc')->get();
+        }
+
+        return response()->json([
+            'payouts' => $payouts,
+        ]);
+    }
 }

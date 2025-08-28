@@ -44,12 +44,20 @@ class SearchController extends Controller
 
         $type = $request->get('type');
         if ($type === 'courses') {
+            if(auth()->user()->isInstructor()) {
+                $coursesQuery->where('instructor_id', auth()->user()->instructor->id);
+                $courses = $coursesQuery->get();
+            }else if (auth()->user()->isStudent()){
             $courses = $coursesQuery->get()->map(function ($course) {
                 $course->status = $course->students()
-                ->where('student_id', auth()->user()->student->id)->pluck('status')->first();
+                    ->where('student_id', auth()->user()->student->id)->pluck('status')->first();
                 unset($course->students);
                 return $course;
             });
+            }
+            else{
+                $courses = $coursesQuery->get();
+            }
             return response()->json(['courses' => $courses], 200);
         }
         if ($type === 'categories') {

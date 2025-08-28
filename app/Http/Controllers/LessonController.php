@@ -8,6 +8,7 @@ use App\Models\Lesson;
 use App\Models\LessonStudent;
 use App\Models\Section;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use FFMpeg\FFMpeg;
 
@@ -170,7 +171,15 @@ class LessonController extends Controller
         }
 
         $section = $lesson->section;
-        $lesson->delete();
+        $deletedOrder = $lesson->order;
+
+        DB::transaction(function () use ($lesson, $deletedOrder) {
+            $lesson->delete();
+
+            Lesson::where('section_id', $lesson->section_id)
+                ->where('order', '>', $deletedOrder)
+                ->decrement('order');
+        });
 
         $section->total_duration = $section->lessons()->sum('duration');
         $section->save();

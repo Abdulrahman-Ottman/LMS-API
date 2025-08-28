@@ -14,6 +14,7 @@ Route::middleware(['throttle:60,1'])->group(function () {
 });
 
 Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/user', [AuthController::class, 'getInfo']);
     Route::post('/password/change', [AuthController::class, 'changePassword']);
     Route::post('/logout', [AuthController::class, 'logout']);
 });

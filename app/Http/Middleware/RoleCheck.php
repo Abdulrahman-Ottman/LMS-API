@@ -13,20 +13,28 @@ class RoleCheck
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, string $roles): Response
     {
         if (!$request->user()) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
+        $rolesArray = explode('|', $roles);
+        foreach ($rolesArray as $role) {
+            $role = trim($role);
 
-        if ($role === 'student' && !$request->user()->isStudent()) {
-            return response()->json(['message' => 'Access denied. Student role required.'], 403);
+            if ($role === 'student' && $request->user()->isStudent()) {
+                return $next($request);
+            }
+
+            if ($role === 'instructor' && $request->user()->isInstructor()) {
+                return $next($request);
+            }
+
+            if ($role === 'admin' && $request->user()->isAdmin()) {
+                return $next($request);
+            }
         }
 
-        if ($role === 'instructor' && !$request->user()->isInstructor()) {
-            return response()->json(['message' => 'Access denied. Instructor role required.'], 403);
-        }
-
-        return $next($request);
+        return response()->json(['message' => 'Access denied. Insufficient role.'], 403);
     }
 }

@@ -12,7 +12,7 @@ class CouponController extends Controller
     {
         $request->validate([
             'code' => 'required|string|unique:coupons,code',
-            'value' => 'required|numeric|min:0.01|max:1.00',
+            'value' => 'required|numeric|min:0|max:100',
             'expires_at' => 'nullable|date|after:today',
         ]);
 
@@ -88,9 +88,9 @@ class CouponController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user->isInstructor() && !$user->isAdmin()) {
+        if (!$user->isInstructor()) {
             return response()->json([
-                'message' => 'Only instructors and admins can view coupons.'
+                'message' => 'Only instructors can view coupons.'
             ], 403);
         }
 
