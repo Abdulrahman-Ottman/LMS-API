@@ -151,7 +151,9 @@ class InstructorController extends Controller
     public function disable(Instructor $instructor)
     {
         $instructor->update(['enabled' => false]);
-
+        if ($instructor->user) {
+            $instructor->user->tokens()->delete();
+        }
         return response()->json([
             'message' => 'Instructor disabled successfully.',
             'instructor' => $instructor

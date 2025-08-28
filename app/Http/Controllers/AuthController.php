@@ -113,15 +113,25 @@ class AuthController
     public function login(Request $request)
     {
         $credentials = $request->only('email', 'password');
+
         if (!Auth::attempt($credentials)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
         $user = Auth::user();
-        if($user->isStudent())
+
+        // check if instructor is disabled
+        if ($user->isInstructor() && !$user->instructor->enabled) {
+            Auth::logout();
+            return response()->json(['message' => 'Your instructor account is disabled.'], 403);
+        }
+
+        if ($user->isStudent()) {
             $user->load('student');
-        else if ($user->isInstructor())
+        } elseif ($user->isInstructor()) {
             $user->load('instructor');
+        }
+
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([

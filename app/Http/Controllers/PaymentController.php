@@ -22,14 +22,16 @@ class PaymentController extends Controller
         $request->validate([
             'course_id' => 'required|integer|exists:courses,id',
         ]);
+        $courseId = $request->input('course_id');
+        $course = Course::find($courseId);
+        if (!$course->enabled) {
+            return response()->json(['error' => 'This course is not available for enrollment.'], 403);
+        }
 
         Stripe::setApiKey(config('services.stripe.secret'));
 
         $student = auth()->user()->student;
-        $courseId = $request->input('course_id');
         $couponCode = $request->input('coupon_code');
-
-        $course = Course::find($courseId);
 
         $price = $course->price;
         if($price==0) {
