@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Course;
 use App\Models\Instructor;
+use App\Models\LessonStudent;
 use App\Models\Section;
 use Illuminate\Http\Request;
 use App\Traits\FilterCourses;
@@ -19,34 +20,101 @@ class CourseController extends Controller
     use filterCourses, sortCourses;
     public function show($id)
     {
-$course = Course::with([
-        'instructor',
-        'categories',
-        'reviews.student.user:id,user_name,avatar',
-        'sections.lessons'
-    ])->find($id);
+        $course = Course::with([
+            'instructor',
+            'categories',
+            'reviews.student.user:id,user_name,avatar',
+            'sections.lessons'
+        ])->find($id);
+
         if (!$course) {
             return response()->json(['message' => 'Course not found.'], 404);
         }
-        if( auth()->user()->isStudent()) {
-            $course->status = $course->students()
-                ->where('student_id', auth()->user()->student->id)
-                ->pluck('status')
+
+        $student = auth()->user()->isStudent() ? auth()->user()->student : null;
+
+        $isEnrolled = false;
+
+        if ($student) {
+            $courseStudent = $course->students()
+                ->where('student_id', $student->id)
                 ->first();
+
+            if ($courseStudent) {
+                $isEnrolled = true;
+                $course->status = $courseStudent->status;
+            }
+
             unset($course->students);
         }
 
-    $sectionCount = $course->sections->count();
-    $lessonCount = $course->sections->flatMap->lessons->count();
-    $totalDuration = $course->sections->flatMap->lessons->sum('duration');
+        $sectionCount = $course->sections->count();
+        $lessonCount = $course->sections->flatMap->lessons->count();
+        $totalDuration = $course->sections->flatMap->lessons->sum('duration');
+
+        // Add lesson status for each lesson
+        if ($student) {
+            if ($isEnrolled) {
+                $completedLessons = LessonStudent::where('student_id', $student->id)
+                    ->pluck('lesson_id')
+                    ->toArray();
+
+                foreach ($course->sections as $section) {
+                    foreach ($section->lessons as $lesson) {
+                        $lesson->status = in_array($lesson->id, $completedLessons)
+                            ? 'completed'
+                            : 'unlocked';
+                    }
+                }
+            } else {
+                // Not enrolled → all lessons are locked
+                foreach ($course->sections as $section) {
+                    foreach ($section->lessons as $lesson) {
+                        $lesson->status = 'locked';
+                    }
+                }
+            }
+        }
+
         return response()->json([
-        'data' => $course ,
-        'meta' => [
-            'section_count' => $sectionCount,
-            'lesson_count' => $lessonCount,
-            'total_duration' => $totalDuration
-        ]]);
+            'data' => $course,
+            'meta' => [
+                'section_count' => $sectionCount,
+                'lesson_count' => $lessonCount,
+                'total_duration' => $totalDuration
+            ]
+        ]);
     }
+//    public function show($id)
+//    {
+//$course = Course::with([
+//        'instructor',
+//        'categories',
+//        'reviews.student.user:id,user_name,avatar',
+//        'sections.lessons'
+//    ])->find($id);
+//        if (!$course) {
+//            return response()->json(['message' => 'Course not found.'], 404);
+//        }
+//        if( auth()->user()->isStudent()) {
+//            $course->status = $course->students()
+//                ->where('student_id', auth()->user()->student->id)
+//                ->pluck('status')
+//                ->first();
+//            unset($course->students);
+//        }
+//
+//    $sectionCount = $course->sections->count();
+//    $lessonCount = $course->sections->flatMap->lessons->count();
+//    $totalDuration = $course->sections->flatMap->lessons->sum('duration');
+//        return response()->json([
+//        'data' => $course ,
+//        'meta' => [
+//            'section_count' => $sectionCount,
+//            'lesson_count' => $lessonCount,
+//            'total_duration' => $totalDuration
+//        ]]);
+//    }
 
     public function getCourses(Request $request)
     {
