@@ -2,66 +2,99 @@
 
 namespace Database\Seeders;
 
-use App\Models\Category;
-use App\Models\Course;
-use App\Models\Instructor;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Course;
+use App\Models\Section;
+use App\Models\Lesson;
+use App\Models\Instructor;
 
 class CoursesTableSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
-    public function run(): void
+    public function run()
     {
-        $coursesData = [
-            'Introduction to Programming' => 'Learn the basics of programming, including variables, control structures, and data types.',
-            'Advanced Web Development' => 'Dive deeper into web development with frameworks, APIs, and responsive design.',
-            'Data Science Essentials' => 'Explore the fundamentals of data analysis, visualization, and machine learning.',
-            'Machine Learning Basics' => 'Understand the principles of machine learning and how to apply them to real-world problems.',
-            'UI/UX Design Principles' => 'Discover the core principles of user interface and user experience design.',
-            'Digital Marketing Strategies' => 'Learn effective strategies for online marketing, SEO, and social media.',
-            'Cybersecurity Fundamentals' => 'Gain insights into cybersecurity threats and how to protect information systems.',
-            'Mobile App Development' => 'Create mobile applications for iOS and Android using popular frameworks.',
-            'Cloud Computing Concepts' => 'Understand cloud computing models, services, and deployment strategies.',
-            'Game Development with Unity' => 'Develop engaging games using Unity, focusing on graphics, physics, and gameplay.',
-            'Blockchain Technology' => 'Explore the principles of blockchain and its applications in various industries.',
-            'Photography Basics' => 'Learn the fundamentals of photography, including composition, lighting, and editing.',
-            'Public Speaking Skills' => 'Enhance your public speaking abilities and learn effective communication techniques.',
-            'Financial Literacy for Beginners' => 'Understand personal finance, budgeting, and investment strategies.',
-            'Creative Writing Workshop' => 'Develop your writing skills through exercises and feedback on your work.',
+        $instructors = Instructor::pluck('id')->all();
+
+        if (count($instructors) < 1) {
+            $this->command->error('Seed instructors before seeding courses.');
+            return;
+        }
+
+        // عناوين واقعية مختصرة للدورات
+        $courseTitles = [
+            'Intro to Programming', 'Web Development Basics', 'Mobile Apps with Flutter',
+            'Object-Oriented Design', 'Data Structures & Algorithms', 'Database Design Fundamentals',
+            'RESTful API Development', 'Cyber Security Essentials', 'Linux Administration',
+            'Cloud Computing Overview', 'Machine Learning Starter', 'AI Concepts for Beginners',
+            'Networks & Protocols', 'Software Testing Practices', 'Agile & Scrum in Practice',
+            'DevOps Crash Course', 'Frontend with HTML/CSS/JS', 'Backend with PHP & Laravel',
+            'Data Analysis Essentials', 'Project Management Basics',
         ];
-        $instructors = Instructor::all();
-        $categories = Category::all();
-        foreach ($instructors as $instructor) {
-            $numberOfCourses = rand(1, 3);
-            for ($i = 1; $i <= $numberOfCourses; $i++) {
-                $randomTitle = array_rand($coursesData);
-                $categories = $instructor->categories;
-                $randomCategories = $categories->random(rand(1, min(2, $categories->count())));
-                $course=Course::create([
-                    'instructor_id' => $instructor->id,
-                    'title' => $randomTitle,
-                    'image' => 'default.png',
-                    'views' => rand(0,100),
-                    'description' => $coursesData[$randomTitle],
-                    'price' =>  rand(1, 20).'0',
-                    'level' => rand(1, 5) > 2 ? rand(1, 5) : null,
-                    'discount' => rand(0, 10) > 5 ? rand(1, 30) : 0,
-                    'rating'=> 0,
+
+        for ($i = 1; $i <= 20; $i++) {
+
+            $course = Course::create([
+                'instructor_id'  => $instructors[array_rand($instructors)],
+                'title'          => $courseTitles[$i - 1],
+                'image'          => 'storage/public/images/courses/default.png',
+                'views'          => rand(250, 8000),
+                'description'    => 'Comprehensive course covering fundamentals with practical examples and exercises in Arabic.',
+                'price'          => (float) rand(50, 200),  // float كما في الجدول
+                'level'          => rand(1, 3),             // 1: مبتدئ، 2: متوسط، 3: متقدم
+                'rating'         => rand(0, 5),             // تقييم عددي
+                'discount'       => number_format(rand(0, 5000) / 100, 2), // 0.00 إلى 50.00
+                'enabled'        => true,                   // الحقل المُضاف لاحقاً
+                'total_duration' => 0,                      // سنحسبه بعد إضافة الدروس
+            ]);
+
+            $courseTotalDuration = 0;
+
+            // 7 أقسام لكل دورة
+            for ($s = 1; $s <= 7; $s++) {
+
+                $section = Section::create([
+                    'title'          => "Section {$s} - " . $course->title,
+                    'course_id'      => $course->id,
+                    'order'          => $s,
+                    'total_duration' => 0, // الحقل المُضاف لاحقاً
                 ]);
-                $randomCategories = $categories->random(rand(1, min(2, $categories->count())));
-                $attachIds = [];
-                foreach ($randomCategories as $category) {
-                    $attachIds[] = $category->id;
-                    if ($category->parent_id) {
-                        $attachIds[] = $category->parent_id;
-                    }
+
+                $sectionTotal = 0;
+
+                // 3 دروس ثابتة لكل قسم
+                $lessons = [
+                    ['title' => 'Introduction', 'file_name' => 'intro.mp4'],
+                    ['title' => 'Lesson 1',     'file_name' => 'lesson1.mp4'],
+                    ['title' => 'Lesson 2',     'file_name' => 'lesson2.mp4'],
+                ];
+
+                foreach ($lessons as $index => $def) {
+                    // المدة (بالدقائق) رقم صحيح كما في الجدول
+                    $duration = rand(8, 20); // 8 إلى 20 دقيقة
+
+                    Lesson::create([
+                        'title'      => $def['title'],
+                        'section_id' => $section->id,
+                        'duration'   => $duration,                 // موجود كما طلبت
+                        'file_name'  => $def['file_name'],         // اسم الملف كما هو مطلوب
+                        'order'      => $index + 1,
+                        'views'      => rand(0, 1200),
+                    ]);
+
+                    $sectionTotal += $duration;
                 }
-                $course->categories()->attach(array_unique($attachIds));
-                $instructor->categories()->syncWithoutDetaching(array_unique($attachIds));
+
+                // تحديث مدة القسم الإجمالية
+                $section->update([
+                    'total_duration' => $sectionTotal,
+                ]);
+
+                $courseTotalDuration += $sectionTotal;
             }
+
+            // تحديث مدة الدورة الإجمالية
+            $course->update([
+                'total_duration' => $courseTotalDuration,
+            ]);
         }
     }
 }

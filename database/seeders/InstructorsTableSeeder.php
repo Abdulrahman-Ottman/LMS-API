@@ -2,29 +2,32 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Database\Seeder;
 use App\Models\Instructor;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class InstructorsTableSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
-    public function run(): void
+    public function run()
     {
-        $instructors = User::where('role', 'instructor')->get();
+        $userIds = User::inRandomOrder()->limit(20)->pluck('id');
 
-        foreach ($instructors as $user) {
+        foreach ($userIds as $id) {
+            $user = User::find($id);
+
             Instructor::create([
-                'user_id' => $user->id,
+                'user_id' => $id,
                 'verified' => true,
-                'full_name' =>  $user->first_name . ' ' . $user->last_name,
-                'views' => rand(0, 100),
-                'bio' => 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.',
-                'rating' => rand(0, 5),
+                'full_name' => $user->first_name . ' ' . $user->last_name,
+                'views' => rand(100, 5000),
+                'bio' => 'Professional instructor specialized in ' . fake()->randomElement([
+                        'programming', 'engineering', 'design', 'business', 'education'
+                    ]),
+                'rating' => rand(3, 5),
+                'cv_path' => null,
+                'enabled' => true,
+                'current_balance' => rand(100, 500),
+                'total_balance' => rand(1000, 5000),
             ]);
         }
     }

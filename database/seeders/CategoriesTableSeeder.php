@@ -2,65 +2,47 @@
 
 namespace Database\Seeders;
 
-use App\Models\Category;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Category;
 
 class CategoriesTableSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
-    public function run(): void
+    public function run()
     {
-        $programming = Category::create([
-            'name' => 'Programming',
-            'image' => 'programming.png',
-        ]);
+        $categories = [
+            'Programming' => ['Python', 'Java', 'C++', 'PHP', 'JavaScript'],
+            'Web Development' => ['Frontend', 'Backend', 'Fullstack', 'HTML & CSS', 'Web Frameworks'],
+            'Mobile Development' => ['Android', 'iOS', 'Flutter', 'React Native', 'Xamarin'],
+            'Software Engineering' => ['Agile Methods', 'Design Patterns', 'UML', 'Software Testing', 'DevOps'],
+            'Artificial Intelligence' => ['Neural Networks', 'NLP', 'Computer Vision', 'Reinforcement Learning', 'AI Ethics'],
+            'Data Science' => ['Data Analysis', 'Data Visualization', 'Big Data', 'Statistics', 'Data Mining'],
+            'Machine Learning' => ['Supervised Learning', 'Unsupervised Learning', 'Deep Learning', 'Time Series', 'Model Deployment'],
+            'Cyber Security' => ['Ethical Hacking', 'Cryptography', 'Network Security', 'Application Security', 'Forensics'],
+            'Networks' => ['Network Basics', 'Routing & Switching', 'Wireless Networks', 'Network Protocols', 'IoT Networks'],
+            'Cloud Computing' => ['AWS', 'Azure', 'Google Cloud', 'Cloud Security', 'Serverless'],
+            'Operating Systems' => ['Linux', 'Windows', 'MacOS', 'OS Internals', 'Embedded OS'],
+            'Database Systems' => ['SQL', 'NoSQL', 'PostgreSQL', 'MongoDB', 'Database Design'],
+            'Computer Graphics' => ['2D Graphics', '3D Graphics', 'Game Engines', 'Rendering', 'Animation'],
+            'Project Management' => ['Scrum', 'Kanban', 'Risk Management', 'Planning Tools', 'Leadership'],
+            'Business Analysis' => ['Requirement Gathering', 'Process Modeling', 'SWOT Analysis', 'KPIs', 'Market Research'],
+        ];
 
-        $business = Category::create([
-            'name' => 'Business',
-            'image' => 'business.png',
-        ]);
-
-        $design = Category::create([
-            'name' => 'Design',
-            'image' => 'design.png',
-        ]);
-
-        // Subcategories for Programming
-        $this->createSubCategories($programming->id, [
-            'Web Development',
-            'Mobile Apps',
-            'Game Development',
-            'Data Science'
-        ]);
-
-        // Subcategories for Business
-        $this->createSubCategories($business->id, [
-            'Marketing',
-            'Finance',
-            'Entrepreneurship',
-            'Management'
-        ]);
-
-        // Subcategories for Design
-        $this->createSubCategories($design->id, [
-            'Graphic Design',
-            'UI/UX Design',
-            '3D Modeling',
-            'Motion Graphics'
-        ]);
-    }
-
-    protected function createSubCategories($parentId, array $subNames)
-    {
-        foreach ($subNames as $name) {
-            Category::create([
-                'name' => $name,
-                'parent_id' => $parentId,
-                'image' => strtolower(str_replace(' ', '_', $name)) . '.png',
+        foreach ($categories as $main => $subs) {
+            // إنشاء الفئة الرئيسية
+            $mainCategory = Category::create([
+                'name' => $main,
+                'parent_id' => null,
+                'image' => 'storage/public/images/categories/default.png',
             ]);
+
+            // إنشاء الفئات الفرعية
+            foreach ($subs as $sub) {
+                Category::create([
+                    'name' => $sub,
+                    'parent_id' => $mainCategory->id,
+                    'image' => 'storage/public/images/categories/default.png',
+                ]);
+            }
         }
     }
 }

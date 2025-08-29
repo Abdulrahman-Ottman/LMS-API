@@ -2,23 +2,21 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Database\Seeder;
 use App\Models\Student;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 
 class StudentsTableSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
-    public function run(): void
+    public function run()
     {
-        $students = User::where('role', 'student')->get();
+        $userIds = User::inRandomOrder()->limit(20)->pluck('id');
 
-        foreach ($students as $user) {
+        foreach ($userIds as $id) {
+            $user = User::find($id);
+
             Student::create([
-                'user_id' => $user->id,
+                'user_id' => $id,
                 'full_name' => $user->first_name . ' ' . $user->last_name,
             ]);
         }
