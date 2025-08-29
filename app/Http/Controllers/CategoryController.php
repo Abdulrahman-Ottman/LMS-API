@@ -16,11 +16,17 @@ class CategoryController extends Controller
         ], 200);
     }
 
-    public function getSubCategories($id)
+    public function getSubCategories(Request $request)
     {
-        $subCategories = Category::where('parent_id', $id)->get();
+        // Accept either a single ID or an array of IDs
+        $ids = is_array($request->ids) ? $request->ids : [$request->ids];
+
+        $subCategories = Category::whereIn('parent_id', $ids)->get();
+
+        $grouped = $subCategories->groupBy('parent_id');
+
         return response()->json([
-            'data' => $subCategories
+            'data' => $grouped
         ], 200);
     }
     public function getCategories()
