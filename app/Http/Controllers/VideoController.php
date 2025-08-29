@@ -141,8 +141,6 @@ class VideoController extends Controller
                 $languages[] = $matches[1];
             }
         }
-        if(!$languages)
-            return response()->json('No languages found.', 404);
 
         return response()->json($languages);
     }

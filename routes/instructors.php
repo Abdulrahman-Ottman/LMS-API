@@ -11,7 +11,7 @@ Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
 Route::get('/instructors', [InstructorController::class, 'getInstructors'])
     ->middleware(['auth:sanctum', 'role:student|admin']);
 
-Route::middleware(['auth:sanctum', 'role:instructor', 'throttle:4,720'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:instructor'])->group(function () {
     Route::post('/instructor/upload-cv', [InstructorController::class, 'uploadCv']);
     Route::get('/dashboard/instructor', [InstructorController::class, 'instructorDashboard']);
 

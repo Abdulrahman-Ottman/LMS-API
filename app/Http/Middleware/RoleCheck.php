@@ -27,13 +27,13 @@ class RoleCheck
             }
 
             if ($role === 'instructor' && $request->user()->isInstructor()) {
-                if (!$request->user()->instructor->enabled) {
+                if (!$request->user()->instructor->verfied) {
                     // Allow only CV upload route
-                    if ($request->is('instructor/upload-cv')) {
+                    if ($request->is('api/instructor/upload-cv')) {
                         return $next($request);
                     }
 
-                    return response()->json(['message' => 'Your account is disabled. You can only upload your CV.'], 403);
+                    return response()->json(['message' => 'Your account is not verified. You can only upload your CV.'], 403);
                 }
 
                 return $next($request);
