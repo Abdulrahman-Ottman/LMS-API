@@ -108,3 +108,32 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/me/devices/{token}', [DeviceTokenController::class, 'destroy']); // remove by token
     Route::post('/me/notifications/test', [DeviceTokenController::class, 'sendTest']); // optional helper
 });
+use App\Models\Section;
+use App\Events\SectionDurationUpdated;
+
+// Update durations for ALL sections
+Route::get('sections/update-durations', function () {
+    // Get all sections with their lessons
+    $sections = Section::with('lessons')->get();
+    $updatedCount = 0;
+
+    // Loop through each section
+    foreach ($sections as $section) {
+        // Calculate total duration from lessons
+        $totalDuration = $section->lessons->sum('duration');
+
+        // Only update if duration has changed
+            $section->total_duration = $totalDuration;
+            $section->save();
+
+            // Fire the event
+            event(new SectionDurationUpdated($section));
+
+            $updatedCount++;
+        }
+
+
+    return response()->json([
+        'message' => "Successfully updated durations for {$updatedCount} sections",
+    ]);
+})->name('sections.update-all-durations');

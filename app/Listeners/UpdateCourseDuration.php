@@ -22,7 +22,9 @@ class UpdateCourseDuration
     public function handle(SectionDurationUpdated $event)
     {
         $course = $event->section->course;
-        $course->total_duration = $course->sections()->sum('total_duration');
-        $course->save();
+        if($course) {
+            $course->total_duration = $course->sections()->sum('total_duration');
+            $course->save();
+        }
     }
 }

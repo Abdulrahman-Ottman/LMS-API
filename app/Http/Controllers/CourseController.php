@@ -36,6 +36,11 @@ class CourseController extends Controller
         $isEnrolled = false;
 
         if ($student) {
+                foreach ($course->sections as $section) {
+                    foreach ($section->lessons as $lesson) {
+                        $lesson->duration = (int)round($lesson->duration / 60, 0);
+                    }
+                }
             $courseStudent = $course->students()
                 ->where('student_id', $student->id)
                 ->first();
@@ -44,7 +49,6 @@ class CourseController extends Controller
                 $isEnrolled = true;
                 $course->status = $courseStudent->status;
             }
-
             unset($course->students);
         }
 
@@ -163,10 +167,6 @@ class CourseController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user->instructor->verified) {
-            return response()->json(['message' => 'Not verified account.'], 403);
-        }
-
         $request->validate([
             'title' => 'required|string|max:255',
             'image' => 'required|image|mimes:png,jpg',
@@ -234,12 +234,14 @@ class CourseController extends Controller
         ]);
 
         $updateData = $request->only(['title', 'description', 'price', 'level', 'discount']);
+
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('images/course-images', 'public');
             $path = 'storage/' . str_replace("public/", "", $path);
             $updateData['image'] = $path;
         }
-
+        if(isset($updateData['discount']) && $updateData['discount']==null)
+            $updateData['discount']=$course->discount;
         $course->update($updateData);
         $newCategoryIds = $request->category_ids;
         if($newCategoryIds){

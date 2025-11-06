@@ -82,7 +82,7 @@ class StudentController extends Controller
         $courses = Course::whereHas('students', function ($q) use ($student, $status) {
             $q->where('student_id', $student->id)
                 ->where('status', $status);
-        })->get();
+        })->with('instructor')->get();
 
         // calculate progress for each course
         $courses->transform(function ($course) use ($student) {

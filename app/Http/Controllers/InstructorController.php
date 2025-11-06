@@ -111,7 +111,6 @@ class InstructorController extends Controller
 
         $instructor = auth()->user()->instructor;
 
-        // block if already verified
         if ($instructor->verified) {
             return response()->json([
                 'message' => 'Your account is already verified. You cannot upload a new CV.'

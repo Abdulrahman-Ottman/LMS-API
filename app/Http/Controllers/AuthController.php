@@ -49,10 +49,12 @@ class AuthController
         $cachedData['avatar_ext'] = $avatarExt;
         Cache::put('register_' . $request->email, [
             'data' => $cachedData,
-            'code' => $code,
+            // 'code' => $cod
+            //e,
+            'code' => 123456,
         ], now()->addMinutes(15));
 
-        Mail::to($request->email)->send(new VerificationCodeMail($code));
+//        Mail::to($request->email)->send(new VerificationCodeMail($code));
         return response()->json(['message' => 'Verification code sent to your email.']);
 
     }

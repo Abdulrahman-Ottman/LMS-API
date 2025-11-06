@@ -54,7 +54,7 @@ class CouponController extends Controller
         $price = $course->price;
         $price *= (100 - $course->discount);
         $couponDiscount = ($price * $coupon->value)/100;
-        $finalPrice = max(0, $price - $couponDiscount);
+        $finalPrice = max(0, ($price - $couponDiscount)/100);
 
         return response()->json([
             'original_price' => $price,

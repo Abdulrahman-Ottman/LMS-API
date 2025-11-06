@@ -27,7 +27,7 @@ class RoleCheck
             }
 
             if ($role === 'instructor' && $request->user()->isInstructor()) {
-                if (!$request->user()->instructor->verfied) {
+                if (!$request->user()->instructor->verified) {
                     // Allow only CV upload route
                     if ($request->is('api/instructor/upload-cv')) {
                         return $next($request);
